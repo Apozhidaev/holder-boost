@@ -7,10 +7,10 @@ import asyncio
 import httpx
 
 from holder_boost.config import get_settings
+from holder_boost.http import get_json
 from holder_boost.logging import get_logger
 from holder_boost.models.markets import ResolvedMarket
 from holder_boost.models.tag import Tag
-from holder_boost.polymarket.http import get_json
 
 log = get_logger("poly_house.tags")
 

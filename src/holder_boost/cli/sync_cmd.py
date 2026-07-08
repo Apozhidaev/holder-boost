@@ -9,13 +9,13 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.operations import UpdateOne
 
 from holder_boost.config import get_settings
+from holder_boost.http import HTTPError
 from holder_boost.logging import get_logger
 from holder_boost.poly_house.catalog import fetch_resolved_markets_and_tags
 from holder_boost.poly_house.trades import (
     fetch_market_stop_cent_prices,
     fetch_market_trade_cent_prices,
 )
-from holder_boost.polymarket.http import PolymarketHTTPError
 from holder_boost.storage.repos.markets import insert_market_if_absent, market_exists
 from holder_boost.storage.repos.tags import insert_tag_if_absent
 
@@ -83,7 +83,7 @@ async def run_sync(
                     outcome_index=market.resolved_outcome_index,
                 ),
             )
-        except PolymarketHTTPError as exc:
+        except HTTPError as exc:
             trade_failed += 1
             log.warning(
                 "skipping market: trade/stop prices fetch failed",

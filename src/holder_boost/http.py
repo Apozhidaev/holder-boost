@@ -18,11 +18,11 @@ from tenacity import (
 from holder_boost.config import HttpSettings, get_settings
 from holder_boost.logging import get_logger
 
-log = get_logger("polymarket.http")
+log = get_logger("http")
 
 
-class PolymarketHTTPError(RuntimeError):
-    """Raised after retries on a Polymarket HTTP failure."""
+class HTTPError(RuntimeError):
+    """Raised after retries on an HTTP failure."""
 
 
 _NETWORK_ERRORS = (
@@ -53,31 +53,32 @@ async def make_client(settings: HttpSettings | None = None) -> AsyncIterator[htt
         yield client
 
 
-async def _get_json_once(
+async def _request_json_once(
     client: httpx.AsyncClient,
     url: str,
+    *,
     params: dict[str, Any] | None,
+    json_body: Any | None = None,
 ) -> Any:
-    response = await client.get(url, params=params)
+    if json_body is None:
+        response = await client.get(url, params=params)
+    else:
+        response = await client.request("GET", url, params=params, json=json_body)
     if 500 <= response.status_code < 600:
         log.warning("http 5xx, retrying", url=url, status=response.status_code)
         raise _TransientHTTP(response.status_code, response.text)
     if response.status_code >= 400:
-        raise PolymarketHTTPError(f"GET {url} failed: {response.status_code} {response.text[:200]}")
+        raise HTTPError(f"GET {url} failed: {response.status_code} {response.text[:200]}")
     return response.json()
 
 
-async def get_json(
+async def _request_json_with_retries(
     client: httpx.AsyncClient,
     url: str,
     *,
     params: dict[str, Any] | None = None,
+    json_body: Any | None = None,
 ) -> Any:
-    """GET ``url`` and parse JSON, retrying transient failures up to 3x.
-
-    Retries cover network errors and 5xx; 4xx responses fail immediately.
-    After exhausting attempts we raise :class:`PolymarketHTTPError`.
-    """
     try:
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(3),
@@ -86,8 +87,39 @@ async def get_json(
             reraise=False,
         ):
             with attempt:
-                return await _get_json_once(client, url, params)
+                return await _request_json_once(
+                    client,
+                    url,
+                    params=params,
+                    json_body=json_body,
+                )
     except RetryError as exc:
         last = exc.last_attempt.exception()
-        raise PolymarketHTTPError(f"GET {url} failed after retries: {last}") from last
-    raise PolymarketHTTPError(f"GET {url} unreachable")  # pragma: no cover
+        raise HTTPError(f"GET {url} failed after retries: {last}") from last
+    raise HTTPError(f"GET {url} unreachable")  # pragma: no cover
+
+
+async def get_json(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+) -> Any:
+    """GET ``url`` and parse JSON, retrying transient failures up to 3x."""
+    return await _request_json_with_retries(client, url, params=params)
+
+
+async def get_json_with_body(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    json_body: Any = None,
+) -> Any:
+    """GET ``url`` with optional JSON body, parse response JSON with retries."""
+    return await _request_json_with_retries(
+        client,
+        url,
+        params=params,
+        json_body=json_body,
+    )

@@ -14,8 +14,8 @@ from holder_boost.cli.predict_cmd import run_predict
 from holder_boost.cli.sync_cmd import run_sync
 from holder_boost.cli.train_cmd import run_train
 from holder_boost.config import get_settings
+from holder_boost.http import HTTPError, make_client
 from holder_boost.logging import configure_logging, get_logger
-from holder_boost.polymarket import ContractError, PolymarketHTTPError, make_client
 from holder_boost.storage.client import MongoConnectionError, ensure_indexes, get_database
 from holder_boost.storage.repos import logs as logs_repo
 
@@ -49,11 +49,8 @@ async def _command_session(*, command_name: str) -> AsyncIterator[AsyncIOMotorDa
 
         try:
             yield db
-        except ContractError as exc:
-            log.error(f"{command_name} failed", error=str(exc))
-            raise typer.Exit(code=1) from exc
-        except PolymarketHTTPError as exc:
-            log.error("polymarket http failure", error=str(exc))
+        except HTTPError as exc:
+            log.error("http failure", error=str(exc))
             raise typer.Exit(code=1) from exc
         except typer.Exit:
             raise

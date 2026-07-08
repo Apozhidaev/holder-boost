@@ -8,9 +8,9 @@ from typing import Any
 import httpx
 
 from holder_boost.config import get_settings
+from holder_boost.http import get_json_with_body
 from holder_boost.logging import get_logger
 from holder_boost.models.markets import ResolvedMarket
-from holder_boost.poly_house.http import get_json_with_body
 
 log = get_logger("poly_house.markets")
 
