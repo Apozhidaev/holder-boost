@@ -43,7 +43,7 @@ def build_predict_row(
     if row_is_all_missing(wallet_values):
         raise ValueError("all wallet features are -1")
 
-    row = {"day": days_left, **wallet_values}
+    row = {"days_left": days_left, **wallet_values}
     columns = feature_columns(frequent_wallets)
     return pd.DataFrame([{col: row[col] for col in columns}])
 

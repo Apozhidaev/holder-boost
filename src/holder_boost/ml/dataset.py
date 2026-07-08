@@ -34,17 +34,17 @@ def _expand_rows(
 
     for market in markets:
         holder_by_wallet = {holder.proxy_wallet: holder for holder in market.holders}
-        for day in range(market.max_days + 1):
+        for days_left in range(market.max_days_left + 1):
             wallet_values = wallet_values_for_row(
                 frequent_wallets=frequent_wallets,
                 holder_by_wallet=holder_by_wallet,
-                day=day,
+                day=days_left,
             )
             if row_is_all_missing(wallet_values):
                 continue
             rows.append(
                 {
-                    "day": day,
+                    "days_left": days_left,
                     "resolved_outcome_index": market.resolved_outcome_index,
                     **wallet_values,
                 }

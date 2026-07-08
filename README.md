@@ -79,7 +79,7 @@ uv sync --group ml   # для train и serve (CatBoost, FastAPI)
 2. Для **новых** маркетов (нет документа по **`id`**) — параллельно:
    - **`GET /trades/take-prices`** (BUY, `outcome_index` 0 и 1): take-цены в долларах конвертируются в центы и сохраняются в **`trade_cent_prices`** (`[[yes_cents...], [no_cents...]]`);
    - **`GET /trades/stop-prices`** (BUY, `outcome_index = resolved_outcome_index`): агрегаты stop-loss сохраняются в **`stop_prices`** — `dict[cent_price, {count, min_price, min_mean}]` (все значения в центах);
-   - **`GET /activity/holder-distribution`**: распределение холдеров по исходам сохраняется в **`holders`** — `[{proxy_wallet, distribution: {outcome_index: count}}]`; **`max_days`** — горизонт в днях из того же ответа.
+   - **`GET /activity/holder-distribution`**: распределение холдеров по исходам сохраняется в **`holders`** — `[{proxy_wallet, distribution: {outcome_index: count}}]`; **`max_days_left`** — горизонт в днях из того же ответа.
    Требуется запущенный сервис на **`poly_house.base_url`** (по умолчанию `http://127.0.0.1:8000`).
 3. **Insert** в коллекцию **`markets`** по **`id`** (уже существующие документы не перезаписываются;
    повторный **`sync`** не backfill'ит trade-, stop-цены и holders).
@@ -119,7 +119,7 @@ uv run holder-boost predict
 Один вызов (только Mongo, без HTTP; требует `uv sync --group ml`):
 
 1. Загрузка всех маркетов из **`markets`** с **`neg_risk`** из **`[train]`**
-2. Разворачивание строк `(market, day)` для `day = 0..max_days`; фичи: **`day`** и **`proxy_wallet_{address}`** (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
+2. Разворачивание строк `(market, day)` для `day = 0..max_days_left`; фичи: **`days_left`** и **`proxy_wallet_{address}`** (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
 3. Label: **`resolved_outcome_index`**
 4. Optuna + 5-fold CV (или **`--skip-tuning`** для быстрого прогона)
 5. Сохранение в **`model_dir`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`

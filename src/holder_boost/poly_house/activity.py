@@ -29,15 +29,16 @@ def _holder_distribution_from_payload(payload: Any) -> tuple[list[HolderDistribu
     else:
         holders = [HolderDistribution.model_validate(item) for item in holders_raw]
 
-    max_days_raw = payload.get("max_days", 0)
+    max_days_left_raw = payload.get("max_days_left", 0)
     try:
-        max_days = int(max_days_raw)
+        max_days_left = int(max_days_left_raw)
     except (TypeError, ValueError) as exc:
         raise HTTPError(
-            f"unexpected holder-distribution response: max_days is not an int: {max_days_raw!r}"
+            "unexpected holder-distribution response: "
+            f"max_days_left is not an int: {max_days_left_raw!r}"
         ) from exc
 
-    return holders, max_days
+    return holders, max_days_left
 
 
 async def fetch_market_holder_distribution(
@@ -49,11 +50,11 @@ async def fetch_market_holder_distribution(
     base = get_settings().poly_house.base_url.rstrip("/")
     url = f"{base}/activity/holder-distribution"
     payload = await get_json(client, url, params={"condition_id": condition_id})
-    holders, max_days = _holder_distribution_from_payload(payload)
+    holders, max_days_left = _holder_distribution_from_payload(payload)
     log.info(
         "poly-house holder-distribution loaded",
         market=condition_id,
         holders=len(holders),
-        max_days=max_days,
+        max_days_left=max_days_left,
     )
-    return holders, max_days
+    return holders, max_days_left

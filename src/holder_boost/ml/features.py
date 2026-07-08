@@ -45,7 +45,7 @@ def wallet_values_for_row(
 
 
 def feature_columns(frequent_wallets: Sequence[str]) -> list[str]:
-    return ["day", *[wallet_column(wallet) for wallet in frequent_wallets]]
+    return ["days_left", *[wallet_column(wallet) for wallet in frequent_wallets]]
 
 
 def row_is_all_missing(wallet_values: dict[str, int]) -> bool:

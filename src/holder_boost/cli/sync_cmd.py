@@ -88,7 +88,7 @@ async def run_sync(
                     condition_id=market.condition_id,
                 ),
             )
-            holders, max_days = holder_data
+            holders, max_days_left = holder_data
         except HTTPError as exc:
             trade_failed += 1
             log.warning(
@@ -102,7 +102,7 @@ async def run_sync(
                 "trade_cent_prices": trade_prices,
                 "stop_prices": stop_prices,
                 "holders": holders,
-                "max_days": max_days,
+                "max_days_left": max_days_left,
             }
         )
         if await insert_market_if_absent(db, enriched):
@@ -114,7 +114,7 @@ async def run_sync(
                 trade_no=len(trade_prices[1]),
                 stop_buckets=len(stop_prices),
                 holders=len(holders),
-                max_days=max_days,
+                max_days_left=max_days_left,
             )
 
     await _refresh_tag_markets_counts(db)
