@@ -8,7 +8,7 @@ from holder_boost.models.markets import HolderDistribution
 
 
 def wallet_column(wallet: str) -> str:
-    return f"proxy_wallet_{wallet}"
+    return wallet
 
 
 def wallet_value_from_distribution(

@@ -20,3 +20,12 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     predict_probs: list[float]
+
+
+class FeatureImportance(BaseModel):
+    feature: str
+    importance: float
+
+
+class FeaturesResponse(BaseModel):
+    features: list[FeatureImportance]

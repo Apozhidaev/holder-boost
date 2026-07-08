@@ -117,5 +117,21 @@ def load_metadata(model_dir: Path) -> ModelMetadata:
     return ModelMetadata.from_dict(data)
 
 
+def load_feature_importance(model_dir: Path) -> list[tuple[str, float]]:
+    path = feature_importance_path(model_dir)
+    if not path.is_file():
+        raise FileNotFoundError(f"Feature importance not found: {path}")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if not lines:
+        raise ValueError(f"Feature importance file is empty: {path}")
+    rows: list[tuple[str, float]] = []
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        feature, importance_raw = line.split(",", 1)
+        rows.append((feature, float(importance_raw)))
+    return rows
+
+
 def utc_now_iso() -> str:
     return datetime.now(UTC).isoformat()

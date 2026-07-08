@@ -8,9 +8,14 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, HTTPException, Request
 
-from holder_boost.api.schemas import PredictRequest, PredictResponse
+from holder_boost.api.schemas import (
+    FeatureImportance,
+    FeaturesResponse,
+    PredictRequest,
+    PredictResponse,
+)
 from holder_boost.config import get_settings
-from holder_boost.ml.artifacts import model_dir_for_tag
+from holder_boost.ml.artifacts import load_feature_importance, model_dir_for_tag
 from holder_boost.ml.inference import LoadedModel, load_model_artifacts, predict_probs
 
 if TYPE_CHECKING:
@@ -48,6 +53,24 @@ app = FastAPI(title="holder-boost", lifespan=lifespan)
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/features/{tag_id}", response_model=FeaturesResponse)
+def features(tag_id: int, request: Request) -> FeaturesResponse:
+    model_dir = model_dir_for_tag(request.app.state.models_base_dir, tag_id)
+    try:
+        rows = load_feature_importance(model_dir)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"features not found for tag_id={tag_id}",
+        ) from exc
+    return FeaturesResponse(
+        features=[
+            FeatureImportance(feature=feature, importance=importance)
+            for feature, importance in rows
+        ]
+    )
 
 
 @app.post("/predict", response_model=PredictResponse)
