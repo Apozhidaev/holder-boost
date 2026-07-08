@@ -68,6 +68,11 @@ class TrainSettings(BaseModel):
     random_state: int = 42
 
 
+class ApiSettings(BaseModel):
+    host: str = "127.0.0.1"
+    port: int = 8080
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
@@ -82,6 +87,7 @@ class Settings(BaseSettings):
     sync: SyncSettings = Field(default_factory=SyncSettings)
     predict: PredictSettings
     train: TrainSettings = Field(default_factory=TrainSettings)
+    api: ApiSettings = Field(default_factory=ApiSettings)
 
     @classmethod
     def settings_customise_sources(

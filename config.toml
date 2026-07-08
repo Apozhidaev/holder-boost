@@ -30,3 +30,7 @@ min_wallet_count = 8
 n_trials = 70
 n_folds = 5
 random_state = 42
+
+[api]
+host = "127.0.0.1"
+port = 8080

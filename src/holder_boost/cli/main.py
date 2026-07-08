@@ -11,6 +11,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from holder_boost.cli.predict_cmd import run_predict
+from holder_boost.cli.serve_cmd import run_serve
 from holder_boost.cli.sync_cmd import run_sync
 from holder_boost.cli.train_cmd import run_train
 from holder_boost.config import get_settings
@@ -115,6 +116,14 @@ def train(
 async def _run_train(*, skip_tuning: bool = False) -> None:
     async with _command_session(command_name="train") as db:
         await run_train(db, skip_tuning=skip_tuning)
+
+
+@app.command()
+def serve() -> None:
+    """Run FastAPI server with ``POST /predict``."""
+    clear_contextvars()
+    bind_contextvars(source="cli.serve")
+    run_serve()
 
 
 if __name__ == "__main__":

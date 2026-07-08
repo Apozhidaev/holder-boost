@@ -6,11 +6,12 @@ from collections.abc import Sequence
 
 import pandas as pd
 
-from holder_boost.models.markets import HolderDistribution, ResolvedMarket
-
-
-def _wallet_column(wallet: str) -> str:
-    return f"proxy_wallet_{wallet}"
+from holder_boost.ml.features import (
+    feature_columns,
+    row_is_all_missing,
+    wallet_values_for_row,
+)
+from holder_boost.models.markets import ResolvedMarket
 
 
 def _frequent_wallets(markets: Sequence[ResolvedMarket], min_wallet_count: int) -> list[str]:
@@ -25,28 +26,21 @@ def _frequent_wallets(markets: Sequence[ResolvedMarket], min_wallet_count: int) 
     return sorted(wallet for wallet, count in counts.items() if count >= min_wallet_count)
 
 
-def _wallet_value(holder_by_wallet: dict[str, HolderDistribution], wallet: str, day: int) -> int:
-    holder = holder_by_wallet.get(wallet)
-    if holder is None:
-        return -1
-    return holder.distribution.get(day, -1)
-
-
 def _expand_rows(
     markets: Sequence[ResolvedMarket],
     frequent_wallets: Sequence[str],
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
-    wallet_columns = [_wallet_column(wallet) for wallet in frequent_wallets]
 
     for market in markets:
         holder_by_wallet = {holder.proxy_wallet: holder for holder in market.holders}
         for day in range(market.max_days + 1):
-            wallet_values = {
-                column: _wallet_value(holder_by_wallet, wallet, day)
-                for column, wallet in zip(wallet_columns, frequent_wallets, strict=True)
-            }
-            if all(value == -1 for value in wallet_values.values()):
+            wallet_values = wallet_values_for_row(
+                frequent_wallets=frequent_wallets,
+                holder_by_wallet=holder_by_wallet,
+                day=day,
+            )
+            if row_is_all_missing(wallet_values):
                 continue
             rows.append(
                 {
@@ -74,9 +68,8 @@ def build_training_frame(
     if not rows:
         raise ValueError("no training rows after filtering all-(-1) wallet rows")
 
-    wallet_columns = [_wallet_column(wallet) for wallet in frequent_wallets]
-    feature_columns = ["day", *wallet_columns]
-    X = pd.DataFrame([{col: row[col] for col in feature_columns} for row in rows])
+    columns = feature_columns(frequent_wallets)
+    X = pd.DataFrame([{col: row[col] for col in columns} for row in rows])
     y = pd.Series(
         [row["resolved_outcome_index"] for row in rows],
         dtype=int,

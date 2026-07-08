@@ -38,11 +38,11 @@
 
 ```bash
 uv sync
-uv sync --group ml   # для train (CatBoost)
+uv sync --group ml   # для train и serve (CatBoost, FastAPI)
 ```
 
 Создаётся виртуальное окружение проекта и ставятся runtime- и dev-зависимости
-из `pyproject.toml`. Группа **`ml`** нужна для **`train`**.
+из `pyproject.toml`. Группа **`ml`** нужна для **`train`** и **`serve`**.
 
 ## Конфигурация
 
@@ -64,6 +64,8 @@ uv sync --group ml   # для train (CatBoost)
   - `neg_risk` — фильтр маркетов при обучении
   - `min_wallet_count` — минимум вхождений `proxy_wallet` в маркетах для колонки `proxy_wallet_*`
   - `n_trials`, `n_folds`, `random_state` — Optuna и CV
+- `[api]` — REST API (**`serve`**):
+  - `host`, `port` — адрес сервера (по умолчанию `127.0.0.1:8080`); модель из **`[train].model_dir`**
 
 ## Команды
 
@@ -128,6 +130,40 @@ uv run holder-boost predict
 uv run holder-boost train
 uv run holder-boost train --skip-tuning   # без Optuna
 ```
+
+### `serve`
+
+FastAPI-сервер с **`POST /predict`** (требует `uv sync --group ml` и обученную модель в **`[train].model_dir`**).
+
+Request:
+```json
+{
+  "days_left": 3,
+  "holders": [
+    {"proxy_wallet": "0xabc...", "outcome_index": 1},
+    {"proxy_wallet": "0xdef...", "outcome_index": 0}
+  ]
+}
+```
+
+Response:
+```json
+{
+  "predict_probs": [0.31, 0.69]
+}
+```
+
+`predict_probs` — `[P(resolved_outcome_index=0), P(resolved_outcome_index=1)]` (`[P_yes, P_no]`). Кошельки из модели, не переданные в `holders`, получают `-1` в фичах.
+
+```bash
+uv run holder-boost serve
+curl http://127.0.0.1:8080/health
+curl -X POST http://127.0.0.1:8080/predict \
+  -H 'Content-Type: application/json' \
+  -d '{"days_left": 1, "holders": [{"proxy_wallet": "0x...", "outcome_index": 1}]}'
+```
+
+OpenAPI: `http://127.0.0.1:8080/docs`
 
 ## Линтинг
 
