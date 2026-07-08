@@ -17,8 +17,9 @@
 ## Принцип работы
 
 Данные для обучения загружаются напрямую из poly-house при каждом запуске **`train`**:
-closed-маркеты по тегу (`GET /markets`) и holder-distribution для каждого маркета
-(`GET /activity/holder-distribution`). Обученная модель и метаданные сохраняются в **`.models/{tag_id}/`**
+closed-маркеты по тегу (`GET /markets`), список кошельков (`GET /activity/holders`) и
+holder-distribution по каждому кошельку (`GET /activity/holder-distribution`).
+Обученная модель и метаданные сохраняются в **`.models/{tag_id}/`**
 (отдельная папка на каждый тег).
 
 ## Требования
@@ -62,14 +63,15 @@ uv sync
 
 1. Загрузка closed-маркетов через poly-house **`GET /markets`** (offset-пагинация, `limit` до 500);
    body = `[tag_id]` из **`[train]`**; query **`neg_risk`** из **`[train]`**
-2. Для каждого маркета — **`GET /activity/holder-distribution`**: `holders` и `max_days_left`
+2. Для каждого маркета — **`GET /activity/holders`**, затем **`GET /activity/holder-distribution`**
+   на каждый `proxy_wallet`; `max_days_left` маркета = max `max_days_left` холдеров (где `>= 0`)
 3. Разворачивание строк `(market, day)` для `day = 0..max_days_left`; фичи: **`days_left`** и адрес кошелька (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
 4. Label: **`resolved_outcome_index`**
 5. Optuna + 5-fold CV (или **`--skip-tuning`** для быстрого прогона)
 6. Сохранение в **`{model_dir}/{tag_id}/`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`
 
-При ошибке HTTP poly-house обучение завершается кодом **1**. Ошибка holder-distribution
-для отдельного маркета — warning и skip, не валит весь прогон.
+При ошибке HTTP poly-house обучение завершается кодом **1**. Ошибка holders/distribution
+для отдельного маркета — warning и skip; ошибка одного кошелька — warning и skip кошелька.
 
 ```bash
 uv run holder-boost train

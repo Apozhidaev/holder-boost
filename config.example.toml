@@ -2,7 +2,7 @@
 base_url = "http://127.0.0.1:8000"
 
 [http]
-timeout_seconds = 10.0
+timeout_seconds = 300
 
 [logging]
 level = "INFO"
