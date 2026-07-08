@@ -1,10 +1,4 @@
-"""structlog setup with two sinks: stderr + Mongo ``logs`` collection.
-
-The Mongo sink buffers ``>= INFO`` events in memory; the CLI flushes once
-per command run. ``ts`` stays as a tz-aware ``datetime`` until after the
-sink, so motor can serialize it as a BSON ``Date`` (required for TTL on
-the ``logs`` collection).
-"""
+"""structlog setup: stderr only."""
 
 from __future__ import annotations
 
@@ -17,24 +11,10 @@ import structlog
 from structlog.types import EventDict, Processor
 
 from holder_boost.config import LoggingSettings
-from holder_boost.storage.repos import logs as logs_repo
-
-_MONGO_LEVELS = {"info", "warning", "error", "critical"}
 
 
 def _add_utc_timestamp(_: Any, __: str, event_dict: EventDict) -> EventDict:
     event_dict["ts"] = datetime.now(UTC)
-    return event_dict
-
-
-def _mongo_sink(_: Any, __: str, event_dict: EventDict) -> EventDict:
-    """Buffer ``>= INFO`` events for later flushing into the ``logs`` collection."""
-    level = str(event_dict.get("level", "info")).lower()
-    if level in _MONGO_LEVELS:
-        snapshot = dict(event_dict)
-        if "event" in snapshot:
-            snapshot["msg"] = snapshot.pop("event")
-        logs_repo.buffer_event(snapshot)
     return event_dict
 
 
@@ -67,7 +47,6 @@ def configure_logging(settings: LoggingSettings) -> None:
         structlog.stdlib.add_log_level,
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
-        _mongo_sink,
         _stringify_ts_for_render,
     ]
 

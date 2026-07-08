@@ -41,7 +41,6 @@ class HttpSettings(BaseModel):
 class LoggingSettings(BaseModel):
     level: LogLevel = "INFO"
     format: LogFormat = "pretty"
-    mongo_ttl_days: int = 30
 
 
 class SyncSettings(BaseModel):

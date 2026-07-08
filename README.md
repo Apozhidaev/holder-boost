@@ -43,7 +43,7 @@ uv sync
 
 - `[mongo]` — `uri`, `db`
 - `[http]` — `timeout_seconds`
-- `[logging]` — `level`, `format` (`json` / `pretty`), `mongo_ttl_days`
+- `[logging]` — `level`, `format` (`json` / `pretty`)
 - `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`sync`**
 - `[sync]` — загрузка resolved-маркетов в **`markets`** из poly-house:
   - `tag_ids` — числовые tag id (`list[int]`); JSON body на **`GET /markets`**; пустой список — без фильтра по тегам

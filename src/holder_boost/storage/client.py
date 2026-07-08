@@ -7,13 +7,12 @@ surface immediately with a friendly message — Mongo is mandatory.
 from __future__ import annotations
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pymongo import ASCENDING, DESCENDING
+from pymongo import ASCENDING
 
 from holder_boost.config import MongoSettings, get_settings
 
 MARKETS_COLLECTION = "markets"
 TAGS_COLLECTION = "tags"
-LOGS_COLLECTION = "logs"
 
 
 class MongoConnectionError(RuntimeError):
@@ -46,10 +45,7 @@ async def get_database() -> AsyncIOMotorDatabase:
 
 
 async def ensure_indexes(db: AsyncIOMotorDatabase) -> None:
-    """Create indexes if they don't already exist (events, logs)."""
-    settings = get_settings()
-    ttl_seconds = settings.logging.mongo_ttl_days * 86400
-
+    """Create indexes if they don't already exist."""
     await db[MARKETS_COLLECTION].create_index(
         [("id", ASCENDING)],
         unique=True,
@@ -63,13 +59,4 @@ async def ensure_indexes(db: AsyncIOMotorDatabase) -> None:
         [("id", ASCENDING)],
         unique=True,
         name="tags_id_unique",
-    )
-    await db[LOGS_COLLECTION].create_index(
-        [("ts", ASCENDING)],
-        name="ts_ttl",
-        expireAfterSeconds=ttl_seconds,
-    )
-    await db[LOGS_COLLECTION].create_index(
-        [("source", ASCENDING), ("ts", DESCENDING)],
-        name="source_ts",
     )

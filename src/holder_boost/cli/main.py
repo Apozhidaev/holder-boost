@@ -17,7 +17,6 @@ from holder_boost.config import get_settings
 from holder_boost.http import HTTPError, make_client
 from holder_boost.logging import configure_logging, get_logger
 from holder_boost.storage.client import MongoConnectionError, ensure_indexes, get_database
-from holder_boost.storage.repos import logs as logs_repo
 
 app = typer.Typer(
     name="holder-boost",
@@ -35,31 +34,26 @@ def _root() -> None:
 
 @asynccontextmanager
 async def _command_session(*, command_name: str) -> AsyncIterator[AsyncIOMotorDatabase]:
-    """Common per-command setup: Mongo connect + ensure_indexes + log flush."""
+    """Common per-command setup: Mongo connect + ensure_indexes."""
     log = get_logger(f"cli.{command_name}")
-    db: AsyncIOMotorDatabase | None = None
     try:
-        try:
-            db = await get_database()
-        except MongoConnectionError as exc:
-            log.error("mongo connection failed", error=str(exc))
-            raise typer.Exit(code=1) from exc
+        db = await get_database()
+    except MongoConnectionError as exc:
+        log.error("mongo connection failed", error=str(exc))
+        raise typer.Exit(code=1) from exc
 
-        await ensure_indexes(db)
+    await ensure_indexes(db)
 
-        try:
-            yield db
-        except HTTPError as exc:
-            log.error("http failure", error=str(exc))
-            raise typer.Exit(code=1) from exc
-        except typer.Exit:
-            raise
-        except Exception as exc:
-            log.error("unexpected error", error=str(exc), exc_info=True)
-            raise typer.Exit(code=1) from exc
-    finally:
-        if db is not None:
-            await logs_repo.flush(db)
+    try:
+        yield db
+    except HTTPError as exc:
+        log.error("http failure", error=str(exc))
+        raise typer.Exit(code=1) from exc
+    except typer.Exit:
+        raise
+    except Exception as exc:
+        log.error("unexpected error", error=str(exc), exc_info=True)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command()
