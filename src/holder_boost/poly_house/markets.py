@@ -18,16 +18,11 @@ _PAGE_LIMIT = 500
 
 
 def _resolved_market_from_house(raw: dict[str, Any]) -> ResolvedMarket:
-    outcome_prices = raw["outcome_prices"]
     return ResolvedMarket(
         id=raw["_id"],
         slug=raw["slug"],
-        event_id=raw["event_id"],
         condition_id=raw["condition_id"],
-        clob_token_ids=raw["clob_token_ids"],
-        neg_risk=raw.get("neg_risk") or False,
-        tags=raw["tag_ids"],
-        resolved_outcome_index=outcome_prices.index(max(outcome_prices)),
+        resolved_outcome_index=raw["resolved_outcome_index"],
     )
 
 
@@ -52,7 +47,7 @@ async def fetch_resolved_markets(
             client,
             url,
             params={
-                "closed": True,
+                "resolved": True,
                 "neg_risk": neg_risk,
                 "limit": _PAGE_LIMIT,
                 "offset": offset,

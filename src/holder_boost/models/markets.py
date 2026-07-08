@@ -17,11 +17,7 @@ class ResolvedMarket(BaseModel):
 
     id: int
     slug: str
-    event_id: int
     condition_id: str
-    clob_token_ids: list[str]
-    neg_risk: bool
-    tags: list[int]
     resolved_outcome_index: int
     holders: list[HolderDistribution] = Field(default_factory=list)
     max_days_left: int = Field(default=0)
