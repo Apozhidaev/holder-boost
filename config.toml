@@ -11,7 +11,7 @@ format = "pretty"
 [train]
 model_dir = ".models"
 neg_risk = false
-min_wallet_count = 8
+min_wallet_count = 5
 n_trials = 70
 n_folds = 5
 random_state = 42
