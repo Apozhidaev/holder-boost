@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import httpx
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.operations import UpdateOne
@@ -13,10 +11,6 @@ from holder_boost.http import HTTPError
 from holder_boost.logging import get_logger
 from holder_boost.poly_house.activity import fetch_market_holder_distribution
 from holder_boost.poly_house.catalog import fetch_resolved_markets_and_tags
-from holder_boost.poly_house.trades import (
-    fetch_market_stop_cent_prices,
-    fetch_market_trade_cent_prices,
-)
 from holder_boost.storage.repos.markets import insert_market_if_absent, market_exists
 from holder_boost.storage.repos.tags import insert_tag_if_absent
 
@@ -67,40 +61,26 @@ async def run_sync(
 
     inserted = 0
     skipped = 0
-    trade_failed = 0
+    enrich_failed = 0
     for market in markets:
         if await market_exists(db, market.id):
             skipped += 1
             continue
         try:
-            trade_prices, stop_prices, holder_data = await asyncio.gather(
-                fetch_market_trade_cent_prices(
-                    client,
-                    condition_id=market.condition_id,
-                ),
-                fetch_market_stop_cent_prices(
-                    client,
-                    condition_id=market.condition_id,
-                    outcome_index=market.resolved_outcome_index,
-                ),
-                fetch_market_holder_distribution(
-                    client,
-                    condition_id=market.condition_id,
-                ),
+            holders, max_days_left = await fetch_market_holder_distribution(
+                client,
+                condition_id=market.condition_id,
             )
-            holders, max_days_left = holder_data
         except HTTPError as exc:
-            trade_failed += 1
+            enrich_failed += 1
             log.warning(
-                "skipping market: trade/stop/holders fetch failed",
+                "skipping market: holder-distribution fetch failed",
                 market_id=market.id,
                 error=str(exc),
             )
             continue
         enriched = market.model_copy(
             update={
-                "trade_cent_prices": trade_prices,
-                "stop_prices": stop_prices,
                 "holders": holders,
                 "max_days_left": max_days_left,
             }
@@ -110,9 +90,6 @@ async def run_sync(
             log.info(
                 "market inserted",
                 market_id=market.id,
-                trade_yes=len(trade_prices[0]),
-                trade_no=len(trade_prices[1]),
-                stop_buckets=len(stop_prices),
                 holders=len(holders),
                 max_days_left=max_days_left,
             )
@@ -124,9 +101,9 @@ async def run_sync(
         fetched=len(markets),
         inserted=inserted,
         skipped=skipped,
-        trade_failed=trade_failed,
+        enrich_failed=enrich_failed,
     )
     print(
         f"sync: fetched={len(markets)} inserted={inserted} "
-        f"skipped={skipped} trade_failed={trade_failed} resolved markets"
+        f"skipped={skipped} enrich_failed={enrich_failed} resolved markets"
     )

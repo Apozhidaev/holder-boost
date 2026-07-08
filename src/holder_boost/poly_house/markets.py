@@ -28,8 +28,6 @@ def _resolved_market_from_house(raw: dict[str, Any]) -> ResolvedMarket:
         neg_risk=raw.get("neg_risk") or False,
         tags=raw["tag_ids"],
         resolved_outcome_index=outcome_prices.index(max(outcome_prices)),
-        trade_cent_prices=[[], []],
-        stop_prices={},
     )
 
 

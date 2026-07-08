@@ -22,7 +22,7 @@
 ## Принцип работы
 
 Каталог resolved-маркетов живёт в Mongo (**`markets`**): документ по Gamma **`id`**
-(`ResolvedMarket`: `condition_id`, `resolved_outcome_index`, `trade_cent_prices`, `stop_prices`, `tags` и т.д.).
+(`ResolvedMarket`: `condition_id`, `resolved_outcome_index`, `holders`, `max_days_left`, `tags` и т.д.).
 Наполняется командой **`sync`** (см. раздел **`sync`** ниже; при необходимости запускайте повторно).
 
 ## Требования
@@ -50,7 +50,7 @@ uv sync --group ml   # для train и serve (CatBoost, FastAPI)
 - `[mongo]` — `uri`, `db`
 - `[http]` — `timeout_seconds`
 - `[logging]` — `level`, `format` (`json` / `pretty`), `mongo_ttl_days`
-- `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`sync`** и trade-цены
+- `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`sync`**
 - `[sync]` — загрузка resolved-маркетов в **`markets`** из poly-house:
   - `tag_ids` — числовые tag id (`list[int]`); JSON body на **`GET /markets`**; пустой список — без фильтра по тегам
   - `neg_risk` — query **`neg_risk`** на **`GET /markets`**; по умолчанию **`false`**
@@ -71,13 +71,10 @@ uv sync --group ml   # для train и serve (CatBoost, FastAPI)
 1. Загрузка closed-маркетов через poly-house **`GET /markets`** (offset-пагинация, `limit` до 500);
    query **`neg_risk`** из **`[sync]`**; опционально body **`tag_ids`** из **`[sync]`**; теги — **`GET /tags/{id}`** для id из маркетов;
    парсинг в **`ResolvedMarket`**.
-2. Для **новых** маркетов (нет документа по **`id`**) — параллельно:
-   - **`GET /trades/take-prices`** (BUY, `outcome_index` 0 и 1): take-цены в долларах конвертируются в центы и сохраняются в **`trade_cent_prices`** (`[[yes_cents...], [no_cents...]]`);
-   - **`GET /trades/stop-prices`** (BUY, `outcome_index = resolved_outcome_index`): агрегаты stop-loss сохраняются в **`stop_prices`** — `dict[cent_price, {count, min_price, min_mean}]` (все значения в центах);
-   - **`GET /activity/holder-distribution`**: распределение холдеров по исходам сохраняется в **`holders`** — `[{proxy_wallet, distribution: {outcome_index: count}}]`; **`max_days_left`** — горизонт в днях из того же ответа.
+2. Для **новых** маркетов (нет документа по **`id`**) — **`GET /activity/holder-distribution`**: распределение холдеров сохраняется в **`holders`** — `[{proxy_wallet, distribution: {outcome_index: count}}]`; **`max_days_left`** — горизонт в днях из того же ответа.
    Требуется запущенный сервис на **`poly_house.base_url`** (по умолчанию `http://127.0.0.1:8000`).
 3. **Insert** в коллекцию **`markets`** по **`id`** (уже существующие документы не перезаписываются;
-   повторный **`sync`** не backfill'ит trade-, stop-цены и holders).
+   повторный **`sync`** не backfill'ит holders).
 
 При ошибке HTTP poly-house синхронизация завершается кодом **1** (stderr и лог). Битые строки
 парсинга пропускаются с warning, не валят весь прогон. Требуется запущенный poly-house на **`poly_house.base_url`**.

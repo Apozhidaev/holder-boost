@@ -93,7 +93,7 @@ def train(
         help="Skip Optuna hyperparameter search (faster smoke runs).",
     ),
 ) -> None:
-    """Train CatBoost on resolved market take-prices; save model to ``model_dir``."""
+    """Train CatBoost on holder distribution rows; save model to ``model_dir``."""
     clear_contextvars()
     bind_contextvars(source="cli.train")
     asyncio.run(_run_train(skip_tuning=skip_tuning))
