@@ -21,4 +21,4 @@ class ResolvedMarket(BaseModel):
     condition_id: str
     resolved_outcome_index: int
     holders: list[HolderDistribution] = Field(default_factory=list)
-    max_days_left: int = Field(default=0)
+    max_days_left: int = Field(default=-1)

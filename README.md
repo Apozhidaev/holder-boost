@@ -64,8 +64,8 @@ uv sync
 1. Загрузка closed-маркетов через poly-house **`GET /markets`** (offset-пагинация, `limit` до 500);
    body = `[tag_id]` из **`[train]`**; query **`neg_risk`** из **`[train]`**
 2. Для каждого маркета — **`GET /activity/holders`**, затем **`GET /activity/holder-distribution`**
-   на каждый `proxy_wallet`; `max_days_left` маркета = max `max_days_left` холдеров (где `>= 0`)
-3. Разворачивание строк `(market, day)` для `day = 0..max_days_left`; фичи: **`days_left`** и адрес кошелька (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
+   на каждый `proxy_wallet`; `max_days_left` маркета = max `max_days_left` холдеров (где `>= 0`), иначе `-1` (неизвестно)
+3. Разворачивание строк `(market, day)` для `day = 0..max_days_left` (маркеты с `max_days_left < 0` пропускаются); фичи: **`days_left`** и адрес кошелька (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
 4. Label: **`resolved_outcome_index`**
 5. Optuna + 5-fold CV (или **`--skip-tuning`** для быстрого прогона)
 6. Сохранение в **`{model_dir}/{tag_id}/`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`

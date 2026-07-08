@@ -18,7 +18,7 @@ log = get_logger("poly_house.activity")
 
 def compute_market_max_days_left(holders: Sequence[HolderDistribution]) -> int:
     values = [holder.max_days_left for holder in holders if holder.max_days_left >= 0]
-    return max(values) if values else 0
+    return max(values) if values else -1
 
 
 def _proxy_wallets_from_payload(payload: Any) -> list[str]:

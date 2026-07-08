@@ -33,6 +33,8 @@ def _expand_rows(
     rows: list[dict[str, object]] = []
 
     for market in markets:
+        if market.max_days_left < 0:
+            continue
         holder_by_wallet = {holder.proxy_wallet: holder for holder in market.holders}
         for days_left in range(market.max_days_left + 1):
             wallet_values = wallet_values_for_row(
