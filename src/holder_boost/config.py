@@ -1,0 +1,142 @@
+"""Application settings loaded from config.toml with ENV overrides.
+
+Settings are loaded once at process start. ENV variables follow the nested
+delimiter convention (e.g. ``MONGO__URI``, ``LOGGING__LEVEL``) and override
+values from ``config.toml``.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, Field
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+)
+
+CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.toml"
+
+
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+LogFormat = Literal["json", "pretty"]
+
+
+class MongoSettings(BaseModel):
+    uri: str = "mongodb://localhost:27017"
+    db: str = "holder_boost"
+
+
+class PolymarketSettings(BaseModel):
+    gamma_url: str = "https://gamma-api.polymarket.com"
+    clob_url: str = "https://clob.polymarket.com"
+    data_url: str = "https://data-api.polymarket.com"
+    proxy_wallet: str = ""
+
+
+class PolyHouseSettings(BaseModel):
+    base_url: str = "http://127.0.0.1:8000"
+
+
+class HttpSettings(BaseModel):
+    timeout_seconds: float = 10.0
+
+
+class LoggingSettings(BaseModel):
+    level: LogLevel = "INFO"
+    format: LogFormat = "pretty"
+    mongo_ttl_days: int = 30
+
+
+class SearchSettings(BaseModel):
+    """Gamma ``search``: open-market screen by CLOB best ask."""
+
+    min_price: float
+    max_price: float
+    max_spread: float
+    outcome_price_tolerance: float
+    outcome_index: int = 1
+    tag_ids: list[int] = Field(default_factory=list)
+    deadline_in_days: int | None = None
+
+
+class SearchHolderSettings(BaseModel):
+    """Gamma ``search-holder``: holders with private usernames on open markets."""
+
+    tag_ids: list[int] = Field(default_factory=list)
+    deadline_in_days: int | None = None
+    holders_limit: int = Field(default=100, ge=1, le=500)
+    proxy_wallet: str | None = None
+
+
+class SyncSettings(BaseModel):
+    """``sync``: resolved markets upsert to ``markets`` from poly-house."""
+
+    tag_ids: list[int] = Field(default_factory=list)
+    neg_risk: bool = False
+
+
+class PredictSettings(BaseModel):
+    """``predict``: tag-level stats from resolved ``markets``."""
+
+    neg_risk: bool
+
+
+class TrainSettings(BaseModel):
+    """``train``: CatBoost models on resolved ``markets`` take-prices (Yes and No)."""
+
+    model_dir: str = "models"
+    neg_risk: bool = False
+    min_tag_count: int = 8
+    n_trials: int = 70
+    n_folds: int = 5
+    random_state: int = 42
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_nested_delimiter="__",
+        toml_file=CONFIG_PATH,
+        extra="ignore",
+    )
+
+    mongo: MongoSettings = Field(default_factory=MongoSettings)
+    polymarket: PolymarketSettings = Field(default_factory=PolymarketSettings)
+    poly_house: PolyHouseSettings = Field(default_factory=PolyHouseSettings)
+    http: HttpSettings = Field(default_factory=HttpSettings)
+    logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    sync: SyncSettings = Field(default_factory=SyncSettings)
+    predict: PredictSettings
+    train: TrainSettings = Field(default_factory=TrainSettings)
+    search: SearchSettings
+    search_holder: SearchHolderSettings = Field(default_factory=SearchHolderSettings)
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # ENV must override TOML — env_settings goes first.
+        return (
+            init_settings,
+            env_settings,
+            TomlConfigSettingsSource(settings_cls),
+        )
+
+
+_settings: Settings | None = None
+
+
+def get_settings() -> Settings:
+    """Return process-wide singleton Settings, loading on first access."""
+    global _settings
+    if _settings is None:
+        _settings = Settings()  # pyright: ignore[reportCallIssue, reportArgumentType]
+    return _settings

@@ -1,0 +1,58 @@
+[mongo]
+uri = "mongodb://localhost:27017"
+db = "holder_boost"
+
+[polymarket]
+gamma_url = "https://gamma-api.polymarket.com"
+clob_url = "https://clob.polymarket.com"
+data_url = "https://data-api.polymarket.com"
+proxy_wallet = "0x180A6723d150Af39a5C40E0761321942E5728c61"  # proxy wallet (0x…); для search — загрузка позиций GET /positions
+
+[poly_house]
+base_url = "http://127.0.0.1:8000"
+
+[http]
+timeout_seconds = 10.0
+
+[logging]
+level = "INFO"
+format = "pretty"
+mongo_ttl_days = 3
+
+[sync]
+# tag_ids = [102486]  # ukraine-map
+neg_risk = false
+tag_ids = [100265]  # geopolitics
+# tag_ids = [2, 100265]  # politics, geopolitics
+# tag_ids = [2, 100265, 100238]  # politics, geopolitics
+
+[predict]
+neg_risk = false  # только маркеты с совпадающим neg_risk
+
+[train]
+model_dir = "models"  # models/outcome_0 и models/outcome_1
+neg_risk = false
+min_tag_count = 8
+n_trials = 70
+n_folds = 5
+random_state = 42
+
+[search]
+# tag_ids = [96, 102486]  # ukraine
+# tag_ids = [102486]  # ukraine-map
+tag_ids = [100265]  # geopolitics
+# tag_ids = [2, 100265]  # politics, geopolitics
+# tag_ids = [2, 100265, 100238]  # politics, geopolitics
+deadline_in_days = 30  # опционально: end_date_max = сегодня (ET) + N дней
+min_price = 0.65
+max_price = 0.95
+max_spread = 0.1
+outcome_price_tolerance = 0.05
+outcome_index = 1
+
+[search_holder]
+tag_ids = [100265]  # ukraine
+deadline_in_days = 30
+holders_limit = 100  # топ-N холдеров на маркет (1–500), без пагинации
+# proxy_wallet = "0xa5ef39c3d3e10d0b270233af41cac69796b12966"  # опционально: только холдеры с этим proxyWallet
+proxy_wallet = "0x5a218c7ad04135830a45c41aaed7294df7809318"  # proxy wallet (0x…); для search — загрузка позиций GET /positions
