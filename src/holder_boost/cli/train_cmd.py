@@ -5,24 +5,36 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
+import httpx
 
 from holder_boost.config import get_settings
 from holder_boost.logging import get_logger
 from holder_boost.ml.artifacts import save_artifacts
 from holder_boost.ml.trainer import train_model
-from holder_boost.storage.repos.markets import fetch_all_markets
+from holder_boost.poly_house.enrich import fetch_resolved_markets_with_holders
 
 
-async def run_train(db: AsyncIOMotorDatabase, *, skip_tuning: bool = False) -> None:
-    """Load markets from Mongo, train CatBoost on holder rows, save artifacts."""
+async def run_train(
+    client: httpx.AsyncClient,
+    *,
+    tag_id: int,
+    skip_tuning: bool = False,
+    max_pages: int | None = None,
+) -> None:
+    """Fetch markets from poly-house, train CatBoost on holder rows, save artifacts."""
     log = get_logger("cli.train")
     cfg = get_settings().train
     model_dir = Path(cfg.model_dir)
 
-    markets = await fetch_all_markets(db, neg_risk=cfg.neg_risk)
+    markets = await fetch_resolved_markets_with_holders(
+        client,
+        tag_id=tag_id,
+        neg_risk=cfg.neg_risk,
+        max_pages=max_pages,
+    )
     log.info(
         "train data loaded",
+        tag_id=tag_id,
         markets=len(markets),
         neg_risk=cfg.neg_risk,
     )
@@ -61,5 +73,5 @@ async def run_train(db: AsyncIOMotorDatabase, *, skip_tuning: bool = False) -> N
         best_cv_auc=result.metadata.best_cv_auc,
     )
 
-    print(f"train: markets={len(markets)} saved={model_dir}")
+    print(f"train: tag_id={tag_id} markets={len(markets)} saved={model_dir}")
     print(f"  {summary}")

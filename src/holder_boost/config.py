@@ -1,8 +1,8 @@
 """Application settings loaded from config.toml with ENV overrides.
 
 Settings are loaded once at process start. ENV variables follow the nested
-delimiter convention (e.g. ``MONGO__URI``, ``LOGGING__LEVEL``) and override
-values from ``config.toml``.
+delimiter convention (e.g. ``LOGGING__LEVEL``) and override values from
+``config.toml``.
 """
 
 from __future__ import annotations
@@ -25,11 +25,6 @@ LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 LogFormat = Literal["json", "pretty"]
 
 
-class MongoSettings(BaseModel):
-    uri: str = "mongodb://localhost:27017"
-    db: str = "holder_boost"
-
-
 class PolyHouseSettings(BaseModel):
     base_url: str = "http://127.0.0.1:8000"
 
@@ -43,15 +38,8 @@ class LoggingSettings(BaseModel):
     format: LogFormat = "pretty"
 
 
-class SyncSettings(BaseModel):
-    """``sync``: resolved markets upsert to ``markets`` from poly-house."""
-
-    tag_ids: list[int] = Field(default_factory=list)
-    neg_risk: bool = False
-
-
 class TrainSettings(BaseModel):
-    """``train``: CatBoost model on holder distribution rows from resolved ``markets``."""
+    """``train``: CatBoost model on holder distribution rows from poly-house."""
 
     model_dir: str = ".models"
     neg_risk: bool = False
@@ -73,11 +61,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    mongo: MongoSettings = Field(default_factory=MongoSettings)
     poly_house: PolyHouseSettings = Field(default_factory=PolyHouseSettings)
     http: HttpSettings = Field(default_factory=HttpSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
-    sync: SyncSettings = Field(default_factory=SyncSettings)
     train: TrainSettings = Field(default_factory=TrainSettings)
     api: ApiSettings = Field(default_factory=ApiSettings)
 

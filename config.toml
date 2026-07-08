@@ -1,7 +1,3 @@
-[mongo]
-uri = "mongodb://localhost:27017"
-db = "holder_boost"
-
 [poly_house]
 base_url = "http://127.0.0.1:8000"
 
@@ -11,13 +7,6 @@ timeout_seconds = 10.0
 [logging]
 level = "INFO"
 format = "pretty"
-
-[sync]
-# tag_ids = [102486]  # ukraine-map
-neg_risk = false
-tag_ids = [100265]  # geopolitics
-# tag_ids = [2, 100265]  # politics, geopolitics
-# tag_ids = [2, 100265, 100238]  # politics, geopolitics
 
 [train]
 model_dir = ".models"
