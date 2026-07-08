@@ -59,10 +59,10 @@ uv sync --group ml   # для train (CatBoost)
   - `neg_risk` — query **`neg_risk`** на **`GET /markets`**; по умолчанию **`false`**
 - `[predict]` — расчёт **`predicts`** из **`markets`**:
   - `neg_risk` — **обязательный**; в расчёт попадают только маркеты с совпадающим **`neg_risk`**
-- `[train]` — обучение CatBoost на take-ценах из **`markets`** (оба исхода: **0** = Yes, **1** = No):
-  - `model_dir` — корень артефактов (по умолчанию `models/`); модели в **`outcome_0/`** и **`outcome_1/`**
+- `[train]` — обучение CatBoost на holder-distribution из **`markets`** (предсказание **`resolved_outcome_index`**, 0 = Yes, 1 = No):
+  - `model_dir` — каталог артефактов (по умолчанию `.models/`)
   - `neg_risk` — фильтр маркетов при обучении
-  - `min_tag_count` — минимум вхождений тега в датасете для multi-hot
+  - `min_wallet_count` — минимум вхождений `proxy_wallet` в маркетах для колонки `proxy_wallet_*`
   - `n_trials`, `n_folds`, `random_state` — Optuna и CV
 
 ## Команды
@@ -117,10 +117,10 @@ uv run holder-boost predict
 Один вызов (только Mongo, без HTTP; требует `uv sync --group ml`):
 
 1. Загрузка всех маркетов из **`markets`** с **`neg_risk`** из **`[train]`**
-2. Для каждого исхода (**0** = Yes, **1** = No): разворачивание **`trade_cent_prices[outcome_index]`**; label **`won = 1`**, если **`resolved_outcome_index == outcome_index`**
-3. Multi-hot частых тегов + признак **`price`** (0–100¢)
+2. Разворачивание строк `(market, day)` для `day = 0..max_days`; фичи: **`day`** и **`proxy_wallet_{address}`** (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
+3. Label: **`resolved_outcome_index`**
 4. Optuna + 5-fold CV (или **`--skip-tuning`** для быстрого прогона)
-5. Сохранение в **`model_dir/outcome_{0,1}/`**: `catboost.cbm`, `mlb.pkl`, `metadata.json`, `feature_importance.csv`
+5. Сохранение в **`model_dir`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`
 
 Требует предварительного **`sync`**.
 

@@ -12,7 +12,6 @@ import pandas as pd
 from catboost import CatBoostClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import MultiLabelBinarizer
 
 from holder_boost.config import TrainSettings
 from holder_boost.ml.artifacts import ModelMetadata, utc_now_iso
@@ -44,7 +43,7 @@ DEFAULT_PARAMS: dict[str, Any] = {
 @dataclass(frozen=True)
 class TrainResult:
     model: CatBoostClassifier
-    mlb: MultiLabelBinarizer
+    frequent_wallets: list[str]
     metadata: ModelMetadata
     feature_importance_csv: str
 
@@ -140,14 +139,12 @@ def train_model(
     markets: list[ResolvedMarket],
     cfg: TrainSettings,
     *,
-    outcome_index: int,
     skip_tuning: bool = False,
 ) -> TrainResult:
-    """Train CatBoost on take-prices for *outcome_index*."""
-    X, y, mlb, frequent_tags = build_training_frame(
+    """Train CatBoost to predict ``resolved_outcome_index`` from holder distribution rows."""
+    X, y, frequent_wallets = build_training_frame(
         markets,
-        outcome_index=outcome_index,
-        min_tag_count=cfg.min_tag_count,
+        min_wallet_count=cfg.min_wallet_count,
     )
 
     best_cv_auc: float | None = None
@@ -166,9 +163,8 @@ def train_model(
 
     feature_names = list(X.columns)
     metadata = ModelMetadata(
-        outcome_index=outcome_index,
         best_params=best_params,
-        frequent_tags=frequent_tags,
+        frequent_wallets=frequent_wallets,
         feature_names=feature_names,
         best_cv_auc=best_cv_auc,
         n_rows=len(X),
@@ -177,7 +173,7 @@ def train_model(
     )
     return TrainResult(
         model=final_model,
-        mlb=mlb,
+        frequent_wallets=frequent_wallets,
         metadata=metadata,
         feature_importance_csv=_feature_importance_csv(final_model, feature_names),
     )

@@ -58,11 +58,11 @@ class PredictSettings(BaseModel):
 
 
 class TrainSettings(BaseModel):
-    """``train``: CatBoost models on resolved ``markets`` take-prices (Yes and No)."""
+    """``train``: CatBoost model on holder distribution rows from resolved ``markets``."""
 
-    model_dir: str = "models"
+    model_dir: str = ".models"
     neg_risk: bool = False
-    min_tag_count: int = 8
+    min_wallet_count: int = 8
     n_trials: int = 70
     n_folds: int = 5
     random_state: int = 42

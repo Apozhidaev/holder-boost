@@ -9,6 +9,7 @@ __pycache__/
 .coverage
 htmlcov/
 catboost_info/
+.models/
 
 .DS_Store
 

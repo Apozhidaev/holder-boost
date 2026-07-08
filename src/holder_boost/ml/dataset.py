@@ -5,71 +5,81 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import pandas as pd
-from sklearn.preprocessing import MultiLabelBinarizer
 
-from holder_boost.models.markets import ResolvedMarket
+from holder_boost.models.markets import HolderDistribution, ResolvedMarket
+
+
+def _wallet_column(wallet: str) -> str:
+    return f"proxy_wallet_{wallet}"
+
+
+def _frequent_wallets(markets: Sequence[ResolvedMarket], min_wallet_count: int) -> list[str]:
+    counts: dict[str, int] = {}
+    for market in markets:
+        seen: set[str] = set()
+        for holder in market.holders:
+            if holder.proxy_wallet in seen:
+                continue
+            seen.add(holder.proxy_wallet)
+            counts[holder.proxy_wallet] = counts.get(holder.proxy_wallet, 0) + 1
+    return sorted(wallet for wallet, count in counts.items() if count >= min_wallet_count)
+
+
+def _wallet_value(holder_by_wallet: dict[str, HolderDistribution], wallet: str, day: int) -> int:
+    holder = holder_by_wallet.get(wallet)
+    if holder is None:
+        return -1
+    return holder.distribution.get(day, -1)
 
 
 def _expand_rows(
     markets: Sequence[ResolvedMarket],
-    *,
-    outcome_index: int,
+    frequent_wallets: Sequence[str],
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
+    wallet_columns = [_wallet_column(wallet) for wallet in frequent_wallets]
+
     for market in markets:
-        try:
-            prices = market.trade_cent_prices[outcome_index]
-        except IndexError:
-            continue
-        won = market.resolved_outcome_index == outcome_index
-        for price in prices:
+        holder_by_wallet = {holder.proxy_wallet: holder for holder in market.holders}
+        for day in range(market.max_days + 1):
+            wallet_values = {
+                column: _wallet_value(holder_by_wallet, wallet, day)
+                for column, wallet in zip(wallet_columns, frequent_wallets, strict=True)
+            }
+            if all(value == -1 for value in wallet_values.values()):
+                continue
             rows.append(
                 {
-                    "tags": market.tags,
-                    "price": price,
-                    "won": int(won),
+                    "day": day,
+                    "resolved_outcome_index": market.resolved_outcome_index,
+                    **wallet_values,
                 }
             )
     return rows
 
 
-def _frequent_tags(rows: list[dict[str, object]], min_tag_count: int) -> list[int]:
-    counts: dict[int, int] = {}
-    for row in rows:
-        for tag_id in row["tags"]:  # type: ignore[union-attr]
-            counts[tag_id] = counts.get(tag_id, 0) + 1
-    return sorted(tag_id for tag_id, count in counts.items() if count >= min_tag_count)
-
-
 def build_training_frame(
     markets: Sequence[ResolvedMarket],
     *,
-    outcome_index: int,
-    min_tag_count: int,
-) -> tuple[pd.DataFrame, pd.Series, MultiLabelBinarizer, list[int]]:
-    """Return ``(X, y, mlb, frequent_tags)`` for CatBoost training."""
-    rows = _expand_rows(markets, outcome_index=outcome_index)
-    if not rows:
-        raise ValueError("no training rows: markets have no take-prices for outcome_index")
-
-    frequent = _frequent_tags(rows, min_tag_count)
-    if not frequent:
+    min_wallet_count: int,
+) -> tuple[pd.DataFrame, pd.Series, list[str]]:
+    """Return ``(X, y, frequent_wallets)`` for CatBoost training."""
+    frequent_wallets = _frequent_wallets(markets, min_wallet_count)
+    if not frequent_wallets:
         raise ValueError(
-            f"no frequent tags after min_tag_count={min_tag_count} filter",
+            f"no frequent wallets after min_wallet_count={min_wallet_count} filter",
         )
 
-    tags_list = [row["tags"] for row in rows]
-    mlb = MultiLabelBinarizer(classes=frequent)
-    tag_matrix = mlb.fit_transform(tags_list)
-    tag_columns = [f"tag_{t}" for t in mlb.classes_]
-    tag_df = pd.DataFrame(tag_matrix, columns=tag_columns)
+    rows = _expand_rows(markets, frequent_wallets)
+    if not rows:
+        raise ValueError("no training rows after filtering all-(-1) wallet rows")
 
-    df = pd.concat(
-        [
-            pd.DataFrame({"price": [row["price"] for row in rows]}),
-            tag_df,
-        ],
-        axis=1,
+    wallet_columns = [_wallet_column(wallet) for wallet in frequent_wallets]
+    feature_columns = ["day", *wallet_columns]
+    X = pd.DataFrame([{col: row[col] for col in feature_columns} for row in rows])
+    y = pd.Series(
+        [row["resolved_outcome_index"] for row in rows],
+        dtype=int,
+        name="resolved_outcome_index",
     )
-    y = pd.Series([row["won"] for row in rows], dtype=int, name="won")
-    return df, y, mlb, frequent
+    return X, y, frequent_wallets

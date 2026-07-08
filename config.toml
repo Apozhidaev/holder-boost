@@ -24,9 +24,9 @@ tag_ids = [100265]  # geopolitics
 neg_risk = false  # только маркеты с совпадающим neg_risk
 
 [train]
-model_dir = "models"  # models/outcome_0 и models/outcome_1
+model_dir = ".models"
 neg_risk = false
-min_tag_count = 8
+min_wallet_count = 8
 n_trials = 70
 n_folds = 5
 random_state = 42
