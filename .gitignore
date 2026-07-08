@@ -16,7 +16,4 @@ catboost_info/
 dist/
 build/
 
-plot/
-csv/
-report/
-html/
+config.toml
