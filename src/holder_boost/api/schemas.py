@@ -13,6 +13,7 @@ class PredictHolder(BaseModel):
 
 
 class PredictRequest(BaseModel):
+    tag_id: int
     days_left: int = Field(ge=0)
     holders: list[PredictHolder]
 

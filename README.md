@@ -10,15 +10,16 @@
 **Что делает проект:**
 
 1. **`train`** — загружает resolved-маркеты и holder-distribution из poly-house по **`[train].tag_id`**,
-   обучает CatBoost и сохраняет артефакты в `.models/`.
-2. **`serve`** — REST API **`POST /predict`**: на вход `days_left` и текущие позиции холдеров,
+   обучает CatBoost и сохраняет артефакты в **`.models/{tag_id}/`**.
+2. **`serve`** — REST API **`POST /predict`**: на вход `tag_id`, `days_left` и текущие позиции холдеров,
    на выход `predict_probs` — `[P(Yes), P(No)]`.
 
 ## Принцип работы
 
 Данные для обучения загружаются напрямую из poly-house при каждом запуске **`train`**:
 closed-маркеты по тегу (`GET /markets`) и holder-distribution для каждого маркета
-(`GET /activity/holder-distribution`). Обученная модель и метаданные сохраняются в **`.models/`**.
+(`GET /activity/holder-distribution`). Обученная модель и метаданные сохраняются в **`.models/{tag_id}/`**
+(отдельная папка на каждый тег).
 
 ## Требования
 
@@ -46,12 +47,12 @@ uv sync
 - `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`train`**
 - `[train]` — обучение CatBoost (предсказание **`resolved_outcome_index`**, 0 = Yes, 1 = No):
   - `tag_id` — числовой tag id; JSON body на **`GET /markets`**
-  - `model_dir` — каталог артефактов (по умолчанию `.models/`)
+  - `model_dir` — базовый каталог артефактов (по умолчанию `.models/`); модель тега — **`{model_dir}/{tag_id}/`**
   - `neg_risk` — query **`neg_risk`** на **`GET /markets`**
   - `min_wallet_count` — минимум вхождений `proxy_wallet` в маркетах для колонки `proxy_wallet_*`
   - `n_trials`, `n_folds`, `random_state` — Optuna и CV
 - `[api]` — REST API (**`serve`**):
-  - `host`, `port` — адрес сервера (по умолчанию `127.0.0.1:8080`); модель из **`[train].model_dir`**
+  - `host`, `port` — адрес сервера (по умолчанию `127.0.0.1:8080`); модели из **`[train].model_dir/{tag_id}/`**
 
 ## Команды
 
@@ -65,7 +66,7 @@ uv sync
 3. Разворачивание строк `(market, day)` для `day = 0..max_days_left`; фичи: **`days_left`** и **`proxy_wallet_{address}`** (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
 4. Label: **`resolved_outcome_index`**
 5. Optuna + 5-fold CV (или **`--skip-tuning`** для быстрого прогона)
-6. Сохранение в **`model_dir`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`
+6. Сохранение в **`{model_dir}/{tag_id}/`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`
 
 При ошибке HTTP poly-house обучение завершается кодом **1**. Ошибка holder-distribution
 для отдельного маркета — warning и skip, не валит весь прогон.
@@ -78,11 +79,12 @@ uv run holder-boost train --max-pages 2  # ограничить пагинаци
 
 ### `serve`
 
-FastAPI-сервер с **`POST /predict`** (требует обученную модель в **`[train].model_dir`**).
+FastAPI-сервер с **`POST /predict`** (требует обученную модель в **`.models/{tag_id}/`** для запрошенного `tag_id`).
 
 Request:
 ```json
 {
+  "tag_id": 102486,
   "days_left": 3,
   "holders": [
     {"proxy_wallet": "0xabc...", "outcome_index": 1},
@@ -105,7 +107,7 @@ uv run holder-boost serve
 curl http://127.0.0.1:8003/health
 curl -X POST http://127.0.0.1:8003/predict \
   -H 'Content-Type: application/json' \
-  -d '{"days_left": 1, "holders": [{"proxy_wallet": "0x...", "outcome_index": 1}]}'
+  -d '{"tag_id": 102486, "days_left": 1, "holders": [{"proxy_wallet": "0x...", "outcome_index": 1}]}'
 ```
 
 OpenAPI: `http://127.0.0.1:8003/docs`

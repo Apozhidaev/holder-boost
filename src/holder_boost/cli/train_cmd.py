@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 import httpx
 
 from holder_boost.config import get_settings
 from holder_boost.logging import get_logger
-from holder_boost.ml.artifacts import save_artifacts
+from holder_boost.ml.artifacts import model_dir_for_tag, save_artifacts
 from holder_boost.ml.trainer import train_model
 from holder_boost.poly_house.enrich import fetch_resolved_markets_with_holders
 
@@ -23,7 +22,7 @@ async def run_train(
     """Fetch markets from poly-house, train CatBoost on holder rows, save artifacts."""
     log = get_logger("cli.train")
     cfg = get_settings().train
-    model_dir = Path(cfg.model_dir)
+    model_dir = model_dir_for_tag(cfg.model_dir, cfg.tag_id)
 
     markets = await fetch_resolved_markets_with_holders(
         client,

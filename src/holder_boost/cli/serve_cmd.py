@@ -14,7 +14,12 @@ def run_serve() -> None:
     log = get_logger("cli.serve")
     host = settings.api.host
     port = settings.api.port
-    log.info("starting api server", host=host, port=port, model_dir=settings.train.model_dir)
+    log.info(
+        "starting api server",
+        host=host,
+        port=port,
+        models_base_dir=settings.train.model_dir,
+    )
     uvicorn.run(
         "holder_boost.api.app:app",
         host=host,

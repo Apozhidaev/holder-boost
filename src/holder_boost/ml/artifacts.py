@@ -51,6 +51,10 @@ class ModelMetadata:
         )
 
 
+def model_dir_for_tag(base_dir: Path | str, tag_id: int) -> Path:
+    return Path(base_dir) / str(tag_id)
+
+
 def model_path(model_dir: Path) -> Path:
     return model_dir / MODEL_FILENAME
 
