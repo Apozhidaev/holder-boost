@@ -90,6 +90,18 @@ async def fetch_markets_by_tag_id(
     return out
 
 
+async def fetch_market_by_condition_id(
+    db: AsyncIOMotorDatabase,
+    condition_id: str,
+) -> ResolvedMarket | None:
+    """Return resolved market by ``condition_id``, or ``None`` if missing."""
+    coll = db[MARKETS_COLLECTION]
+    doc = await coll.find_one({"condition_id": condition_id})
+    if doc is None:
+        return None
+    return _from_doc(doc)
+
+
 async def fetch_all_markets(
     db: AsyncIOMotorDatabase,
     *,

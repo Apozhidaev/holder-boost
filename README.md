@@ -97,7 +97,9 @@ uv run holder-boost train --skip-tuning   # без Optuna
 
 ### `serve`
 
-FastAPI-сервер с **`POST /predict`** (требует обученную модель в **`[train].model_dir`**).
+FastAPI-сервер с **`POST /predict`** и **`GET /predict/sample`** (требует обученную модель в **`[train].model_dir`** и Mongo с данными **`sync`**).
+
+**`GET /predict/sample`** — query `condition_id`, `days_left`; возвращает тело для **`POST /predict`** из `holders` маркета на этот день.
 
 Request:
 ```json
@@ -122,6 +124,7 @@ Response:
 ```bash
 uv run holder-boost serve
 curl http://127.0.0.1:8003/health
+curl 'http://127.0.0.1:8003/predict/sample?condition_id=0x...&days_left=3'
 curl -X POST http://127.0.0.1:8003/predict \
   -H 'Content-Type: application/json' \
   -d '{"days_left": 1, "holders": [{"proxy_wallet": "0x...", "outcome_index": 1}]}'
