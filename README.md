@@ -54,7 +54,7 @@ uv sync
   - `min_wallet_count` — минимум вхождений `proxy_wallet` в маркетах для колонки `proxy_wallet_*`
   - `n_trials`, `n_folds`, `random_state` — Optuna и CV
 - `[api]` — REST API (**`serve`**):
-  - `host`, `port` — адрес сервера (по умолчанию `127.0.0.1:8080`); модель из **`[train].model_dir`**
+  - `host`, `port` — адрес сервера (по умолчанию `127.0.0.1:8003`); модель из **`[train].model_dir`**
 
 ## Команды
 
@@ -121,13 +121,13 @@ Response:
 
 ```bash
 uv run holder-boost serve
-curl http://127.0.0.1:8080/health
-curl -X POST http://127.0.0.1:8080/predict \
+curl http://127.0.0.1:8003/health
+curl -X POST http://127.0.0.1:8003/predict \
   -H 'Content-Type: application/json' \
   -d '{"days_left": 1, "holders": [{"proxy_wallet": "0x...", "outcome_index": 1}]}'
 ```
 
-OpenAPI: `http://127.0.0.1:8080/docs`
+OpenAPI: `http://127.0.0.1:8003/docs`
 
 ## Линтинг
 
