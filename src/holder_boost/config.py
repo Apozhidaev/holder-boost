@@ -30,13 +30,6 @@ class MongoSettings(BaseModel):
     db: str = "holder_boost"
 
 
-class PolymarketSettings(BaseModel):
-    gamma_url: str = "https://gamma-api.polymarket.com"
-    clob_url: str = "https://clob.polymarket.com"
-    data_url: str = "https://data-api.polymarket.com"
-    proxy_wallet: str = ""
-
-
 class PolyHouseSettings(BaseModel):
     base_url: str = "http://127.0.0.1:8000"
 
@@ -49,27 +42,6 @@ class LoggingSettings(BaseModel):
     level: LogLevel = "INFO"
     format: LogFormat = "pretty"
     mongo_ttl_days: int = 30
-
-
-class SearchSettings(BaseModel):
-    """Gamma ``search``: open-market screen by CLOB best ask."""
-
-    min_price: float
-    max_price: float
-    max_spread: float
-    outcome_price_tolerance: float
-    outcome_index: int = 1
-    tag_ids: list[int] = Field(default_factory=list)
-    deadline_in_days: int | None = None
-
-
-class SearchHolderSettings(BaseModel):
-    """Gamma ``search-holder``: holders with private usernames on open markets."""
-
-    tag_ids: list[int] = Field(default_factory=list)
-    deadline_in_days: int | None = None
-    holders_limit: int = Field(default=100, ge=1, le=500)
-    proxy_wallet: str | None = None
 
 
 class SyncSettings(BaseModel):
@@ -104,15 +76,12 @@ class Settings(BaseSettings):
     )
 
     mongo: MongoSettings = Field(default_factory=MongoSettings)
-    polymarket: PolymarketSettings = Field(default_factory=PolymarketSettings)
     poly_house: PolyHouseSettings = Field(default_factory=PolyHouseSettings)
     http: HttpSettings = Field(default_factory=HttpSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     sync: SyncSettings = Field(default_factory=SyncSettings)
     predict: PredictSettings
     train: TrainSettings = Field(default_factory=TrainSettings)
-    search: SearchSettings
-    search_holder: SearchHolderSettings = Field(default_factory=SearchHolderSettings)
 
     @classmethod
     def settings_customise_sources(

@@ -11,8 +11,6 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from holder_boost.cli.predict_cmd import run_predict
-from holder_boost.cli.search_cmd import run_search
-from holder_boost.cli.search_holder_cmd import run_search_holder
 from holder_boost.cli.sync_cmd import run_sync
 from holder_boost.cli.train_cmd import run_train
 from holder_boost.config import get_settings
@@ -68,22 +66,6 @@ async def _command_session(*, command_name: str) -> AsyncIterator[AsyncIOMotorDa
 
 
 @app.command()
-def search() -> None:
-    """Screen open Gamma markets by CLOB best ask; write ``csv/search.csv``."""
-    clear_contextvars()
-    bind_contextvars(source="cli.search")
-    asyncio.run(_run_search())
-
-
-async def _run_search() -> None:
-    async with (
-        _command_session(command_name="search") as db,
-        make_client() as client,
-    ):
-        await run_search(client, db)
-
-
-@app.command()
 def sync(
     max_pages: int | None = typer.Option(
         None,
@@ -136,32 +118,6 @@ def train(
 async def _run_train(*, skip_tuning: bool = False) -> None:
     async with _command_session(command_name="train") as db:
         await run_train(db, skip_tuning=skip_tuning)
-
-
-@app.command("search-holder")
-def search_holder() -> None:
-    """Find holders with private usernames on open markets; write ``csv/search_holder.csv``."""
-    clear_contextvars()
-    bind_contextvars(source="cli.search_holder")
-    asyncio.run(_run_search_holder())
-
-
-async def _run_search_holder() -> None:
-    log = get_logger("cli.search_holder")
-    try:
-        async with make_client() as client:
-            await run_search_holder(client)
-    except ContractError as exc:
-        log.error("search-holder failed", error=str(exc))
-        raise typer.Exit(code=1) from exc
-    except PolymarketHTTPError as exc:
-        log.error("polymarket http failure", error=str(exc))
-        raise typer.Exit(code=1) from exc
-    except typer.Exit:
-        raise
-    except Exception as exc:
-        log.error("unexpected error", error=str(exc), exc_info=True)
-        raise typer.Exit(code=1) from exc
 
 
 if __name__ == "__main__":

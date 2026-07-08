@@ -17,8 +17,7 @@
 2. **История** — искать закономерности на исторических данных: какие метки, диапазоны цен
    и условия дают стабильный результат, а где edge исчезает.
 
-Сейчас в репозитории — синхронизация каталога (**`sync`**) и скрининг открытых маркетов
-(**`search`**). Исторический анализ добавим поверх.
+Сейчас в репозитории — синхронизация каталога (**`sync`**), расчёт **`predict`** и обучение **`train`**.
 
 ## Принцип работы
 
@@ -39,11 +38,11 @@
 
 ```bash
 uv sync
-uv sync --group ml   # для train и search (CatBoost)
+uv sync --group ml   # для train (CatBoost)
 ```
 
 Создаётся виртуальное окружение проекта и ставятся runtime- и dev-зависимости
-из `pyproject.toml`. Группа **`ml`** нужна для **`train`** и CatBoost-инференса в **`search`**.
+из `pyproject.toml`. Группа **`ml`** нужна для **`train`**.
 
 ## Конфигурация
 
@@ -52,7 +51,6 @@ uv sync --group ml   # для train и search (CatBoost)
 Секции:
 
 - `[mongo]` — `uri`, `db`
-- `[polymarket]` — `gamma_url`, `clob_url`, `data_url` (Data API, по умолчанию `https://data-api.polymarket.com`), **`proxy_wallet`** (адрес proxy wallet `0x…`; для **`search`** — загрузка открытых позиций)
 - `[http]` — `timeout_seconds`
 - `[logging]` — `level`, `format` (`json` / `pretty`), `mongo_ttl_days`
 - `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`sync`** и trade-цены
@@ -66,54 +64,8 @@ uv sync --group ml   # для train и search (CatBoost)
   - `neg_risk` — фильтр маркетов при обучении
   - `min_tag_count` — минимум вхождений тега в датасете для multi-hot
   - `n_trials`, `n_folds`, `random_state` — Optuna и CV
-- `[search]` — скрининг открытых маркетов:
-  - `tag_ids` — числовые Gamma tag id (`list[int]`); уходит в query `tag_id` на **`GET /markets/keyset`**; пустой список — без фильтра по тегам
-  - `min_price`, `max_price` — коридор **best ask** (доли 0–1); **обязательные**
-  - `max_spread` — максимум **ask − bid** (доли 0–1); **обязательный**; без bid маркет отбрасывается
-  - `outcome_price_tolerance` — базовый допуск Gamma **`outcomePrices`** для pre-filter; итоговый коридор ± **`outcome_price_tolerance + max_spread`** (доли 0–1); **обязательный**
-  - `outcome_index` — индекс исхода в `outcomes[]`; по умолчанию **1** (**No**)
-  - `deadline_in_days` — опционально: горизонт в днях от сегодня (ET); уходит в query `end_date_max` на **`GET /markets/keyset`**; не задано — без фильтра по дедлайну
-- `[search_holder]` — холдеры с приватным именем на открытых маркетах:
-  - `tag_ids` — числовые Gamma tag id (`list[int]`); уходит в query `tag_id` на **`GET /markets/keyset`**
-  - `deadline_in_days` — опционально: горизонт в днях от сегодня (ET)
-  - `holders_limit` — сколько топ-холдеров брать с маркета (1–500, по умолчанию **100**); один запрос, без пагинации
-  - `proxy_wallet` — опционально: оставить только холдеров с этим `proxyWallet` (`0x…`); не задано — без фильтра по кошельку
 
 ## Команды
-
-### `search`
-
-Скрининг: загрузка открытых позиций через Data API **`GET /positions`**
-(`user` = **`[polymarket].proxy_wallet`**, пагинация `offset`/`limit`), затем открытые маркеты через Gamma
-**`GET /markets/keyset`** (`closed=false`, опционально `tag_id` и `end_date_max` из **`[search]`**),
-последовательные запросы CLOB **`/book`**. Pre-filter по Gamma **`outcomePrices`**
-(коридор ± **`max(outcome_price_tolerance, max_spread)`**), отбор по **best ask** в
-**`[search].min_price`–`max_price`** и **spread ≤ `max_spread`** для исхода **`outcome_index`**.
-Колонка **`status`**: **`open`**, если есть позиция по **`condition_id`** и **`outcome_index`**, иначе **`-`**.
-Колонка **`prob`**: CatBoost из **`[train].model_dir/outcome_{outcome_index}`** — **P(outcome выиграет | tags, ask)** для **`[search].outcome_index`** (требует предварительного **`train`**).
-Колонка **`prop_raw`**: взвешенная эмпирическая доля из **`markets`**: по каждому resolved-маркету с тем же **`neg_risk`**, на ask-цене (¢) считается `m_count` в **`trade_cent_prices[outcome_index]`**; вес **`m_w`** = Σ`1/markets_count` по пересечению тегов / Σ`1/markets_count` по объединению; итог **`win_phat / total_phat`** (пусто, если нет наблюдений).
-Колонка **`edge`**: **`prob − ask`**.
-Результат — **`csv/search.csv`** (путь захардкожен).
-
-```bash
-uv run holder-boost search
-```
-
-Колонки CSV: `outcome`, `event_title`, `group_title`, `ask`, `spread`, `prob`, `prop_raw`, `edge`, `neg_risk`, `status`, `config` (цены и вероятности ×100, 2 знака; `config` — фрагмент TOML для stop-loss бота).
-
-
-### `search-holder`
-
-Загрузка открытых маркетов Gamma (**`GET /markets/keyset`**, `tag_ids` и `deadline_in_days` из **`[search_holder]`**), затем для каждого маркета — холдеры через Data API **`GET /holders`**. В CSV попадают только позиции с **`displayUsernamePublic == false`**.
-
-Результат — **`csv/search_holder.csv`**.
-
-```bash
-uv run holder-boost search-holder
-```
-
-Колонки CSV: `url`, `name`, `proxyWallet`, `amount`, `outcomeIndex`, `neg_risk` (`yes` / `—`, как в `search`).
-
 
 ### `sync`
 

@@ -1,35 +1,8 @@
-"""Open Polymarket markets from Gamma ``/markets/keyset``."""
+"""Resolved Polymarket markets from poly-house."""
 
 from __future__ import annotations
 
-from datetime import date, datetime
-
 from pydantic import BaseModel, ConfigDict, Field
-
-
-class OpenMarket(BaseModel):
-    """One open market row for screening."""
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str
-    slug: str
-    question: str
-    event_slug: str
-    event_title: str
-    condition_id: str
-    outcomes: list[str]
-    outcome_prices: list[str]
-    clob_token_ids: list[str]
-    end_date: str | None
-    group_item_title: str | None = None
-    accepting_orders: bool
-    neg_risk: bool
-    tags: list[int]
-    deadline: date
-
-    def deadline_title(self) -> str:
-        return self.deadline.strftime("%b %d, %Y")
 
 
 class StopPriceDetails(BaseModel):

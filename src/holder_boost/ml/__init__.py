@@ -1,1 +1,1 @@
-"""CatBoost training and inference for outcome probability."""
+"""CatBoost training for outcome probability."""
