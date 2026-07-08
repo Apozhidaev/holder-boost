@@ -76,10 +76,11 @@ uv sync --group ml   # для train (CatBoost)
    парсинг в **`ResolvedMarket`**.
 2. Для **новых** маркетов (нет документа по **`id`**) — параллельно:
    - **`GET /trades/take-prices`** (BUY, `outcome_index` 0 и 1): take-цены в долларах конвертируются в центы и сохраняются в **`trade_cent_prices`** (`[[yes_cents...], [no_cents...]]`);
-   - **`GET /trades/stop-prices`** (BUY, `outcome_index = resolved_outcome_index`): агрегаты stop-loss сохраняются в **`stop_prices`** — `dict[cent_price, {count, min_price, min_mean}]` (все значения в центах).
+   - **`GET /trades/stop-prices`** (BUY, `outcome_index = resolved_outcome_index`): агрегаты stop-loss сохраняются в **`stop_prices`** — `dict[cent_price, {count, min_price, min_mean}]` (все значения в центах);
+   - **`GET /activity/holder-distribution`**: распределение холдеров по исходам сохраняется в **`holders`** — `[{proxy_wallet, distribution: {outcome_index: count}}]`.
    Требуется запущенный сервис на **`poly_house.base_url`** (по умолчанию `http://127.0.0.1:8000`).
 3. **Insert** в коллекцию **`markets`** по **`id`** (уже существующие документы не перезаписываются;
-   повторный **`sync`** не backfill'ит trade- и stop-цены).
+   повторный **`sync`** не backfill'ит trade-, stop-цены и holders).
 
 При ошибке HTTP poly-house синхронизация завершается кодом **1** (stderr и лог). Битые строки
 парсинга пропускаются с warning, не валят весь прогон. Требуется запущенный poly-house на **`poly_house.base_url`**.

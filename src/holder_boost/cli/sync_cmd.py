@@ -11,6 +11,7 @@ from pymongo.operations import UpdateOne
 from holder_boost.config import get_settings
 from holder_boost.http import HTTPError
 from holder_boost.logging import get_logger
+from holder_boost.poly_house.activity import fetch_market_holder_distribution
 from holder_boost.poly_house.catalog import fetch_resolved_markets_and_tags
 from holder_boost.poly_house.trades import (
     fetch_market_stop_cent_prices,
@@ -72,7 +73,7 @@ async def run_sync(
             skipped += 1
             continue
         try:
-            trade_prices, stop_prices = await asyncio.gather(
+            trade_prices, stop_prices, holders = await asyncio.gather(
                 fetch_market_trade_cent_prices(
                     client,
                     condition_id=market.condition_id,
@@ -82,11 +83,15 @@ async def run_sync(
                     condition_id=market.condition_id,
                     outcome_index=market.resolved_outcome_index,
                 ),
+                fetch_market_holder_distribution(
+                    client,
+                    condition_id=market.condition_id,
+                ),
             )
         except HTTPError as exc:
             trade_failed += 1
             log.warning(
-                "skipping market: trade/stop prices fetch failed",
+                "skipping market: trade/stop/holders fetch failed",
                 market_id=market.id,
                 error=str(exc),
             )
@@ -95,6 +100,7 @@ async def run_sync(
             update={
                 "trade_cent_prices": trade_prices,
                 "stop_prices": stop_prices,
+                "holders": holders,
             }
         )
         if await insert_market_if_absent(db, enriched):
@@ -105,6 +111,7 @@ async def run_sync(
                 trade_yes=len(trade_prices[0]),
                 trade_no=len(trade_prices[1]),
                 stop_buckets=len(stop_prices),
+                holders=len(holders),
             )
 
     await _refresh_tag_markets_counts(db)

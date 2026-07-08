@@ -15,6 +15,11 @@ class StopPriceDetails(BaseModel):
     min_mean: int
 
 
+class HolderDistribution(BaseModel):
+    proxy_wallet: str
+    distribution: dict[int, int]
+
+
 class ResolvedMarket(BaseModel):
     """One resolved market."""
 
@@ -30,3 +35,5 @@ class ResolvedMarket(BaseModel):
     resolved_outcome_index: int
     trade_cent_prices: list[list[int]]
     stop_prices: dict[int, StopPriceDetails] = Field(default_factory=dict)
+    holders: list[HolderDistribution] = Field(default_factory=list)
+

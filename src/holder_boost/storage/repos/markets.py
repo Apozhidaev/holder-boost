@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from holder_boost.models.markets import ResolvedMarket, StopPriceDetails
+from holder_boost.models.markets import HolderDistribution, ResolvedMarket, StopPriceDetails
 from holder_boost.storage.client import MARKETS_COLLECTION
 
 
@@ -21,9 +21,40 @@ def _stop_prices_from_doc(raw: object) -> dict[int, StopPriceDetails]:
     }
 
 
+def _holders_to_doc(holders: list[HolderDistribution]) -> list[dict]:
+    return [
+        {
+            "proxy_wallet": holder.proxy_wallet,
+            "distribution": {str(cent): count for cent, count in holder.distribution.items()},
+        }
+        for holder in holders
+    ]
+
+
+def _holders_from_doc(raw: object) -> list[HolderDistribution]:
+    if not isinstance(raw, list):
+        return []
+    out: list[HolderDistribution] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        distribution_raw = item.get("distribution")
+        distribution: dict[int, int] = {}
+        if isinstance(distribution_raw, dict):
+            distribution = {int(cent): int(count) for cent, count in distribution_raw.items()}
+        out.append(
+            HolderDistribution(
+                proxy_wallet=str(item["proxy_wallet"]),
+                distribution=distribution,
+            )
+        )
+    return out
+
+
 def _to_doc(market: ResolvedMarket) -> dict:
     doc = market.model_dump(mode="python")
     doc["stop_prices"] = _stop_prices_to_doc(market.stop_prices)
+    doc["holders"] = _holders_to_doc(market.holders)
     return doc
 
 
@@ -32,6 +63,8 @@ def _from_doc(doc: dict) -> ResolvedMarket:
     payload.pop("_id", None)
     if "stop_prices" in payload:
         payload["stop_prices"] = _stop_prices_from_doc(payload["stop_prices"])
+    if "holders" in payload:
+        payload["holders"] = _holders_from_doc(payload["holders"])
     return ResolvedMarket.model_validate(payload)
 
 
