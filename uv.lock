@@ -345,53 +345,49 @@ name = "holder-boost"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "catboost" },
+    { name = "fastapi" },
     { name = "httpx" },
+    { name = "joblib" },
     { name = "motor" },
+    { name = "numpy" },
+    { name = "optuna" },
+    { name = "pandas" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "scikit-learn" },
     { name = "structlog" },
     { name = "tenacity" },
     { name = "typer" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "ruff" },
 ]
-ml = [
-    { name = "catboost" },
-    { name = "fastapi" },
-    { name = "joblib" },
-    { name = "numpy" },
-    { name = "optuna" },
-    { name = "pandas" },
-    { name = "scikit-learn" },
-    { name = "uvicorn", extra = ["standard"] },
-]
 
 [package.metadata]
 requires-dist = [
+    { name = "catboost", specifier = ">=1.2.8" },
+    { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "joblib", specifier = ">=1.5.0" },
     { name = "motor", specifier = ">=3.7.1" },
+    { name = "numpy", specifier = ">=2.2.0" },
+    { name = "optuna", specifier = ">=4.3.0" },
+    { name = "pandas", specifier = ">=2.2.0" },
     { name = "pydantic", specifier = ">=2.13.3" },
     { name = "pydantic-settings", specifier = ">=2.14.0" },
+    { name = "scikit-learn", specifier = ">=1.6.0" },
     { name = "structlog", specifier = ">=25.5.0" },
     { name = "tenacity", specifier = ">=9.1.4" },
     { name = "typer", specifier = ">=0.25.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.15.12" }]
-ml = [
-    { name = "catboost", specifier = ">=1.2.8" },
-    { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "joblib", specifier = ">=1.5.0" },
-    { name = "numpy", specifier = ">=2.2.0" },
-    { name = "optuna", specifier = ">=4.3.0" },
-    { name = "pandas", specifier = ">=2.2.0" },
-    { name = "scikit-learn", specifier = ">=1.6.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
-]
 
 [[package]]
 name = "httpcore"
