@@ -51,12 +51,6 @@ class SyncSettings(BaseModel):
     neg_risk: bool = False
 
 
-class PredictSettings(BaseModel):
-    """``predict``: tag-level stats from resolved ``markets``."""
-
-    neg_risk: bool
-
-
 class TrainSettings(BaseModel):
     """``train``: CatBoost model on holder distribution rows from resolved ``markets``."""
 
@@ -85,7 +79,6 @@ class Settings(BaseSettings):
     http: HttpSettings = Field(default_factory=HttpSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     sync: SyncSettings = Field(default_factory=SyncSettings)
-    predict: PredictSettings
     train: TrainSettings = Field(default_factory=TrainSettings)
     api: ApiSettings = Field(default_factory=ApiSettings)
 

@@ -12,7 +12,6 @@ from pymongo import ASCENDING, DESCENDING
 from holder_boost.config import MongoSettings, get_settings
 
 MARKETS_COLLECTION = "markets"
-PREDICTS_COLLECTION = "predicts"
 TAGS_COLLECTION = "tags"
 LOGS_COLLECTION = "logs"
 
@@ -59,11 +58,6 @@ async def ensure_indexes(db: AsyncIOMotorDatabase) -> None:
     await db[MARKETS_COLLECTION].create_index(
         [("tags", ASCENDING), ("neg_risk", ASCENDING)],
         name="markets_tags_neg_risk",
-    )
-    await db[PREDICTS_COLLECTION].create_index(
-        [("tag_id", ASCENDING)],
-        unique=True,
-        name="predicts_tag_id_unique",
     )
     await db[TAGS_COLLECTION].create_index(
         [("id", ASCENDING)],

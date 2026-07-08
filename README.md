@@ -17,16 +17,13 @@
 2. **История** — искать закономерности на исторических данных: какие метки, диапазоны цен
    и условия дают стабильный результат, а где edge исчезает.
 
-Сейчас в репозитории — синхронизация каталога (**`sync`**), расчёт **`predict`** и обучение **`train`**.
+Сейчас в репозитории — синхронизация каталога (**`sync`**), обучение **`train`** и REST API (**`serve`**).
 
 ## Принцип работы
 
 Каталог resolved-маркетов живёт в Mongo (**`markets`**): документ по Gamma **`id`**
 (`ResolvedMarket`: `condition_id`, `resolved_outcome_index`, `trade_cent_prices`, `stop_prices`, `tags` и т.д.).
 Наполняется командой **`sync`** (см. раздел **`sync`** ниже; при необходимости запускайте повторно).
-
-Вероятности Yes/No по тегам — в **`predicts`** (документ по **`tag_id`**, поля `outcome_probs`
-`[prob_yes, prob_no]`, `trade_price_probs` (`[yes, no]` по ценам), `trade_price_probs_raw`, `yes_win_markets`, `total_markets`). Считаются командой **`predict`** поверх данных **`sync`**.
 
 ## Требования
 
@@ -57,8 +54,6 @@ uv sync --group ml   # для train и serve (CatBoost, FastAPI)
 - `[sync]` — загрузка resolved-маркетов в **`markets`** из poly-house:
   - `tag_ids` — числовые tag id (`list[int]`); JSON body на **`GET /markets`**; пустой список — без фильтра по тегам
   - `neg_risk` — query **`neg_risk`** на **`GET /markets`**; по умолчанию **`false`**
-- `[predict]` — расчёт **`predicts`** из **`markets`**:
-  - `neg_risk` — **обязательный**; в расчёт попадают только маркеты с совпадающим **`neg_risk`**
 - `[train]` — обучение CatBoost на holder-distribution из **`markets`** (предсказание **`resolved_outcome_index`**, 0 = Yes, 1 = No):
   - `model_dir` — каталог артефактов (по умолчанию `.models/`)
   - `neg_risk` — фильтр маркетов при обучении
@@ -90,28 +85,6 @@ uv sync --group ml   # для train и serve (CatBoost, FastAPI)
 ```bash
 uv run holder-boost sync
 uv run holder-boost sync --max-pages 2  # ограничить пагинацию /markets (для тестов)
-```
-
-### `predict`
-
-Один вызов без аргументов (только Mongo, без HTTP):
-
-1. Загрузка всех тегов из **`tags`**
-2. Для каждого тега — маркеты из **`markets`**, где `tag_id ∈ tags[]` и **`neg_risk`** совпадает с **`[predict].neg_risk`**
-3. Расчёт **`outcome_probs = [yes_win_markets / total_markets, 1 - prob_yes]`**
-   (индекс **0** = Yes, **1** = No), где **`yes_win_markets`** — маркеты с **`resolved_outcome_index == 0`**
-4. Расчёт **`trade_price_probs_raw`** — по каждому исходу 101 значение (цены **0–100**¢, `float` или `null`) до импутации;
-   **`trade_price_probs[outcome_index]`** — ряд после заполнения разрывов. Для каждой цены `p` доля take-цен `p` в
-   **`trade_cent_prices[outcome_index]`** маркетов с **`resolved_outcome_index == outcome_index`** от всех наблюдений `p`
-   по тегу. Импутация: **0¢ → 0.0** если нет наблюдений, каждый разрыв между **соседними** измеренными точками —
-   линейная интерполяция; **100¢** и хвост после последней измеренной — значение последней измеренной точки.
-   Пустые trade-цены не влияют на счётчики, но маркет учитывается в **`outcome_probs`** / **`total_markets`**.
-5. **Upsert** в **`predicts`** по **`tag_id`**; теги без маркетов пропускаются
-
-Требует предварительного **`sync`**.
-
-```bash
-uv run holder-boost predict
 ```
 
 ### `train`

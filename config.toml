@@ -20,9 +20,6 @@ tag_ids = [100265]  # geopolitics
 # tag_ids = [2, 100265]  # politics, geopolitics
 # tag_ids = [2, 100265, 100238]  # politics, geopolitics
 
-[predict]
-neg_risk = false  # только маркеты с совпадающим neg_risk
-
 [train]
 model_dir = ".models"
 neg_risk = false
@@ -33,4 +30,4 @@ random_state = 42
 
 [api]
 host = "127.0.0.1"
-port = 8080
+port = 8003

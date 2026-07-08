@@ -10,7 +10,6 @@ import typer
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
-from holder_boost.cli.predict_cmd import run_predict
 from holder_boost.cli.serve_cmd import run_serve
 from holder_boost.cli.sync_cmd import run_sync
 from holder_boost.cli.train_cmd import run_train
@@ -84,19 +83,6 @@ async def _run_sync(*, max_pages: int | None = None) -> None:
         make_client() as client,
     ):
         await run_sync(db, client, max_pages=max_pages)
-
-
-@app.command()
-def predict() -> None:
-    """Compute Yes win rate per tag from ``markets``; upsert ``predicts``."""
-    clear_contextvars()
-    bind_contextvars(source="cli.predict")
-    asyncio.run(_run_predict())
-
-
-async def _run_predict() -> None:
-    async with _command_session(command_name="predict") as db:
-        await run_predict(db)
 
 
 @app.command()
