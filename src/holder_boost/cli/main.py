@@ -47,7 +47,6 @@ async def _http_session(*, command_name: str) -> AsyncIterator[None]:
 
 @app.command()
 def train(
-    tag_id: int = typer.Argument(..., help="Tag id for poly-house GET /markets filter."),
     skip_tuning: bool = typer.Option(
         False,
         "--skip-tuning",
@@ -63,19 +62,17 @@ def train(
     """Train CatBoost on holder distribution rows; save model to ``model_dir``."""
     clear_contextvars()
     bind_contextvars(source="cli.train")
-    asyncio.run(_run_train(tag_id=tag_id, skip_tuning=skip_tuning, max_pages=max_pages))
+    asyncio.run(_run_train(skip_tuning=skip_tuning, max_pages=max_pages))
 
 
 async def _run_train(
     *,
-    tag_id: int,
     skip_tuning: bool = False,
     max_pages: int | None = None,
 ) -> None:
     async with _http_session(command_name="train"), make_client() as client:
         await run_train(
             client,
-            tag_id=tag_id,
             skip_tuning=skip_tuning,
             max_pages=max_pages,
         )

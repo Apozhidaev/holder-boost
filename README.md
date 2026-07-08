@@ -9,7 +9,7 @@
 
 **Что делает проект:**
 
-1. **`train`** — загружает resolved-маркеты и holder-distribution из poly-house по `tag_id`,
+1. **`train`** — загружает resolved-маркеты и holder-distribution из poly-house по **`[train].tag_id`**,
    обучает CatBoost и сохраняет артефакты в `.models/`.
 2. **`serve`** — REST API **`POST /predict`**: на вход `days_left` и текущие позиции холдеров,
    на выход `predict_probs` — `[P(Yes), P(No)]`.
@@ -45,6 +45,7 @@ uv sync
 - `[logging]` — `level`, `format` (`json` / `pretty`)
 - `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`train`**
 - `[train]` — обучение CatBoost (предсказание **`resolved_outcome_index`**, 0 = Yes, 1 = No):
+  - `tag_id` — числовой tag id; JSON body на **`GET /markets`**
   - `model_dir` — каталог артефактов (по умолчанию `.models/`)
   - `neg_risk` — query **`neg_risk`** на **`GET /markets`**
   - `min_wallet_count` — минимум вхождений `proxy_wallet` в маркетах для колонки `proxy_wallet_*`
@@ -56,10 +57,10 @@ uv sync
 
 ### `train`
 
-Один вызов с positional **`tag_id`**:
+Один вызов без аргументов (тег из **`[train].tag_id`**):
 
 1. Загрузка closed-маркетов через poly-house **`GET /markets`** (offset-пагинация, `limit` до 500);
-   body = `[tag_id]`; query **`neg_risk`** из **`[train]`**
+   body = `[tag_id]` из **`[train]`**; query **`neg_risk`** из **`[train]`**
 2. Для каждого маркета — **`GET /activity/holder-distribution`**: `holders` и `max_days_left`
 3. Разворачивание строк `(market, day)` для `day = 0..max_days_left`; фичи: **`days_left`** и **`proxy_wallet_{address}`** (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
 4. Label: **`resolved_outcome_index`**
@@ -70,9 +71,9 @@ uv sync
 для отдельного маркета — warning и skip, не валит весь прогон.
 
 ```bash
-uv run holder-boost train 100265
-uv run holder-boost train 100265 --skip-tuning
-uv run holder-boost train 100265 --max-pages 2  # ограничить пагинацию /markets (для тестов)
+uv run holder-boost train
+uv run holder-boost train --skip-tuning
+uv run holder-boost train --max-pages 2  # ограничить пагинацию /markets (для тестов)
 ```
 
 ### `serve`

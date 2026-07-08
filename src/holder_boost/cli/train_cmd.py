@@ -17,7 +17,6 @@ from holder_boost.poly_house.enrich import fetch_resolved_markets_with_holders
 async def run_train(
     client: httpx.AsyncClient,
     *,
-    tag_id: int,
     skip_tuning: bool = False,
     max_pages: int | None = None,
 ) -> None:
@@ -28,13 +27,13 @@ async def run_train(
 
     markets = await fetch_resolved_markets_with_holders(
         client,
-        tag_id=tag_id,
+        tag_id=cfg.tag_id,
         neg_risk=cfg.neg_risk,
         max_pages=max_pages,
     )
     log.info(
         "train data loaded",
-        tag_id=tag_id,
+        tag_id=cfg.tag_id,
         markets=len(markets),
         neg_risk=cfg.neg_risk,
     )
@@ -73,5 +72,5 @@ async def run_train(
         best_cv_auc=result.metadata.best_cv_auc,
     )
 
-    print(f"train: tag_id={tag_id} markets={len(markets)} saved={model_dir}")
+    print(f"train: tag_id={cfg.tag_id} markets={len(markets)} saved={model_dir}")
     print(f"  {summary}")

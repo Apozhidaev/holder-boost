@@ -9,6 +9,7 @@ level = "INFO"
 format = "pretty"
 
 [train]
+tag_id = 100265  # geopolitics
 model_dir = ".models"
 neg_risk = false
 min_wallet_count = 5

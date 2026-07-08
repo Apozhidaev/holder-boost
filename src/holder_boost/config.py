@@ -41,6 +41,7 @@ class LoggingSettings(BaseModel):
 class TrainSettings(BaseModel):
     """``train``: CatBoost model on holder distribution rows from poly-house."""
 
+    tag_id: int
     model_dir: str = ".models"
     neg_risk: bool = False
     min_wallet_count: int = 8
@@ -64,7 +65,7 @@ class Settings(BaseSettings):
     poly_house: PolyHouseSettings = Field(default_factory=PolyHouseSettings)
     http: HttpSettings = Field(default_factory=HttpSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
-    train: TrainSettings = Field(default_factory=TrainSettings)
+    train: TrainSettings
     api: ApiSettings = Field(default_factory=ApiSettings)
 
     @classmethod
