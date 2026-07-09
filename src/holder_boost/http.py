@@ -65,7 +65,7 @@ async def _request_json_once(
     else:
         response = await client.request("GET", url, params=params, json=json_body)
     if 500 <= response.status_code < 600:
-        log.warning("http 5xx, retrying", url=url, status=response.status_code)
+        log.warning("http 5xx, retrying", url=url, status=response.status_code, params=params)
         raise _TransientHTTP(response.status_code, response.text)
     if response.status_code >= 400:
         raise HTTPError(f"GET {url} failed: {response.status_code} {response.text[:200]}")
