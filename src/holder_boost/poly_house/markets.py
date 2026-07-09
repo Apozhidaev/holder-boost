@@ -23,6 +23,7 @@ def _resolved_market_from_house(raw: dict[str, Any]) -> ResolvedMarket:
         slug=raw["slug"],
         condition_id=raw["condition_id"],
         resolved_outcome_index=raw["resolved_outcome_index"],
+        duration_days=raw["duration_minutes"] // 1440
     )
 
 
@@ -48,6 +49,7 @@ async def fetch_resolved_markets(
             url,
             params={
                 "resolved": True,
+                "temporal": True,
                 "neg_risk": neg_risk,
                 "limit": _PAGE_LIMIT,
                 "offset": offset,

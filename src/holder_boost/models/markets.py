@@ -20,5 +20,6 @@ class ResolvedMarket(BaseModel):
     slug: str
     condition_id: str
     resolved_outcome_index: int
+    duration_days: int
     holders: list[HolderDistribution] = Field(default_factory=list)
     max_days_left: int = Field(default=-1)
