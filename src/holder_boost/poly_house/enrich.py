@@ -35,6 +35,7 @@ async def fetch_resolved_markets_with_holders(
             holders, max_days_left = await fetch_market_holder_distribution(
                 client,
                 condition_id=market.condition_id,
+                tag_id=tag_id
             )
         except HTTPError as exc:
             enrich_failed += 1
