@@ -55,6 +55,22 @@ def model_dir_for_tag(base_dir: Path | str, tag_id: int) -> Path:
     return Path(base_dir) / str(tag_id)
 
 
+def list_tag_ids(base_dir: Path | str) -> list[int]:
+    """Return sorted tag ids from subdirectories of *base_dir*."""
+    base = Path(base_dir)
+    if not base.is_dir():
+        return []
+    tag_ids: list[int] = []
+    for path in base.iterdir():
+        if not path.is_dir():
+            continue
+        try:
+            tag_ids.append(int(path.name))
+        except ValueError:
+            continue
+    return sorted(tag_ids)
+
+
 def model_path(model_dir: Path) -> Path:
     return model_dir / MODEL_FILENAME
 

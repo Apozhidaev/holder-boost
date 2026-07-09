@@ -13,9 +13,10 @@ from holder_boost.api.schemas import (
     FeaturesResponse,
     PredictRequest,
     PredictResponse,
+    TagsResponse,
 )
 from holder_boost.config import get_settings
-from holder_boost.ml.artifacts import load_feature_importance, model_dir_for_tag
+from holder_boost.ml.artifacts import list_tag_ids, load_feature_importance, model_dir_for_tag
 from holder_boost.ml.inference import LoadedModel, load_model_artifacts, predict_probs
 
 if TYPE_CHECKING:
@@ -53,6 +54,11 @@ app = FastAPI(title="holder-boost", lifespan=lifespan)
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/tags", response_model=TagsResponse)
+def tags(request: Request) -> TagsResponse:
+    return TagsResponse(tag_ids=list_tag_ids(request.app.state.models_base_dir))
 
 
 @app.get("/features/{tag_id}", response_model=FeaturesResponse)

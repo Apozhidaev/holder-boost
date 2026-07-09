@@ -81,7 +81,7 @@ uv run holder-boost train --max-pages 2  # ограничить пагинаци
 
 ### `serve`
 
-FastAPI-сервер с **`POST /predict`** и **`GET /features/{tag_id}`** (требует обученную модель в **`.models/{tag_id}/`**).
+FastAPI-сервер с **`GET /tags`**, **`GET /features/{tag_id}`** и **`POST /predict`** (модели в **`.models/{tag_id}/`**).
 
 Request:
 ```json
@@ -107,6 +107,7 @@ Response:
 ```bash
 uv run holder-boost serve
 curl http://127.0.0.1:8003/health
+curl http://127.0.0.1:8003/tags
 curl http://127.0.0.1:8003/features/102486
 curl -X POST http://127.0.0.1:8003/predict \
   -H 'Content-Type: application/json' \

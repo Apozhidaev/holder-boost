@@ -29,3 +29,7 @@ class FeatureImportance(BaseModel):
 
 class FeaturesResponse(BaseModel):
     features: list[FeatureImportance]
+
+
+class TagsResponse(BaseModel):
+    tag_ids: list[int]
