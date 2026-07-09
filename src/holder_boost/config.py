@@ -43,6 +43,7 @@ class TrainSettings(BaseModel):
 
     tag_id: int
     model_dir: str = ".models"
+    dataset_dir: str = ".datasets"
     neg_risk: bool = False
     min_wallet_count: int = 8
     n_trials: int = 70

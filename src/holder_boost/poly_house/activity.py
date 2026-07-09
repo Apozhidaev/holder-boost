@@ -58,9 +58,9 @@ async def fetch_holder_distribution(
     condition_id: str,
     proxy_wallet: str,
 ) -> HolderDistribution:
-    """Load one holder distribution from poly-house ``GET /activity/holder-distribution``."""
+    """Load one holder distribution from poly-house ``GET /activity/hold-distribution``."""
     base = get_settings().poly_house.base_url.rstrip("/")
-    url = f"{base}/activity/holder-distribution"
+    url = f"{base}/activity/hold-distribution"
     payload = await get_json(
         client,
         url,
@@ -68,7 +68,7 @@ async def fetch_holder_distribution(
     )
     if not isinstance(payload, dict):
         raise HTTPError(
-            f"unexpected holder-distribution response: expected object, got {type(payload)!r}"
+            f"unexpected hold-distribution response: expected object, got {type(payload)!r}"
         )
     return HolderDistribution.model_validate(payload)
 

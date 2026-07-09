@@ -135,18 +135,15 @@ def _feature_importance_csv(model: CatBoostClassifier, feature_names: list[str])
     return "\n".join(lines) + "\n"
 
 
-def train_model(
-    markets: list[ResolvedMarket],
+def train_model_from_frame(
+    X: pd.DataFrame,
+    y: pd.Series,
+    frequent_wallets: list[str],
     cfg: TrainSettings,
     *,
     skip_tuning: bool = False,
 ) -> TrainResult:
-    """Train CatBoost to predict ``resolved_outcome_index`` from holder distribution rows."""
-    X, y, frequent_wallets = build_training_frame(
-        markets,
-        min_wallet_count=cfg.min_wallet_count,
-    )
-
+    """Train CatBoost on a pre-built training frame."""
     best_cv_auc: float | None = None
     if skip_tuning:
         best_params = _base_params(cfg)
@@ -176,4 +173,24 @@ def train_model(
         frequent_wallets=frequent_wallets,
         metadata=metadata,
         feature_importance_csv=_feature_importance_csv(final_model, feature_names),
+    )
+
+
+def train_model(
+    markets: list[ResolvedMarket],
+    cfg: TrainSettings,
+    *,
+    skip_tuning: bool = False,
+) -> TrainResult:
+    """Train CatBoost to predict ``resolved_outcome_index`` from holder distribution rows."""
+    X, y, frequent_wallets = build_training_frame(
+        markets,
+        min_wallet_count=cfg.min_wallet_count,
+    )
+    return train_model_from_frame(
+        X,
+        y,
+        frequent_wallets,
+        cfg,
+        skip_tuning=skip_tuning,
     )

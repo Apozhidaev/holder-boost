@@ -11,6 +11,7 @@ format = "pretty"
 [train]
 tag_id = 102486  # ukraine-map
 model_dir = ".models"
+dataset_dir = ".datasets"
 neg_risk = false
 min_wallet_count = 5
 n_trials = 70

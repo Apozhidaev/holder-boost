@@ -10,6 +10,7 @@ __pycache__/
 htmlcov/
 catboost_info/
 .models/
+.datasets/
 
 .DS_Store
 

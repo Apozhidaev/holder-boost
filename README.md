@@ -9,24 +9,26 @@
 
 **Что делает проект:**
 
-1. **`train`** — загружает resolved-маркеты и holder-distribution из poly-house по **`[train].tag_id`**,
-   обучает CatBoost и сохраняет артефакты в **`.models/{tag_id}/`**.
-2. **`serve`** — REST API **`POST /predict`**: на вход `tag_id`, `days_left` и текущие позиции холдеров,
+1. **`dataset`** — загружает resolved-маркеты и holder-distribution из poly-house по **`[train].tag_id`**
+   и сохраняет training frame в **`.datasets/{tag_id}/`** (parquet).
+2. **`train`** — обучает CatBoost на сохранённом dataset и пишет артефакты в **`.models/{tag_id}/`**.
+3. **`serve`** — REST API **`POST /predict`**: на вход `tag_id`, `days_left` и текущие позиции холдеров,
    на выход `predict_probs` — `[P(Yes), P(No)]`.
 
 ## Принцип работы
 
-Данные для обучения загружаются напрямую из poly-house при каждом запуске **`train`**:
-closed-маркеты по тегу (`GET /markets`), список кошельков (`GET /activity/holders`) и
-holder-distribution по каждому кошельку (`GET /activity/holder-distribution`).
-Обученная модель и метаданные сохраняются в **`.models/{tag_id}/`**
-(отдельная папка на каждый тег).
+Pipeline в два шага:
+
+1. **`dataset`** — HTTP к poly-house, сборка строк `(market, day)`, сохранение в **`.datasets/{tag_id}/`**
+2. **`train`** — load parquet, CatBoost, артефакты в **`.models/{tag_id}/`**
+
+Повторные прогоны **`train`** (Optuna, `--skip-tuning`) не ходят в poly-house.
 
 ## Требования
 
 - Python 3.12+
 - [`uv`](https://github.com/astral-sh/uv)
-- Запущенный poly-house на **`poly_house.base_url`** (для **`train`**)
+- Запущенный poly-house на **`poly_house.base_url`** (для **`dataset`**)
 
 ## Установка
 
@@ -45,10 +47,11 @@ uv sync
 
 - `[http]` — `timeout_seconds`
 - `[logging]` — `level`, `format` (`json` / `pretty`)
-- `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`train`**
+- `[poly_house]` — `base_url` (по умолчанию `http://127.0.0.1:8000`); **`dataset`**
 - `[train]` — обучение CatBoost (предсказание **`resolved_outcome_index`**, 0 = Yes, 1 = No):
   - `tag_id` — числовой tag id; JSON body на **`GET /markets`**
   - `model_dir` — базовый каталог артефактов (по умолчанию `.models/`); модель тега — **`{model_dir}/{tag_id}/`**
+  - `dataset_dir` — базовый каталог dataset (по умолчанию `.datasets/`); parquet тега — **`{dataset_dir}/{tag_id}/`**
   - `neg_risk` — query **`neg_risk`** на **`GET /markets`**
   - `min_wallet_count` — минимум вхождений `proxy_wallet` в маркетах для колонки с адресом кошелька
   - `n_trials`, `n_folds`, `random_state` — Optuna и CV
@@ -57,7 +60,7 @@ uv sync
 
 ## Команды
 
-### `train`
+### `dataset`
 
 Один вызов без аргументов (тег из **`[train].tag_id`**):
 
@@ -66,17 +69,27 @@ uv sync
 2. Для каждого маркета — **`GET /activity/holders`**, затем **`GET /activity/holder-distribution`**
    на каждый `proxy_wallet`; `max_days_left` маркета = max `max_days_left` холдеров (где `>= 0`), иначе `-1` (неизвестно)
 3. Разворачивание строк `(market, day)` для `day = 0..max_days_left` (маркеты с `max_days_left < 0` пропускаются); фичи: **`days_left`** и адрес кошелька (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
-4. Label: **`resolved_outcome_index`**
-5. Optuna + 5-fold CV (или **`--skip-tuning`** для быстрого прогона)
-6. Сохранение в **`{model_dir}/{tag_id}/`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`
+4. Сохранение в **`{dataset_dir}/{tag_id}/`**: `train.parquet`, `metadata.json`
 
-При ошибке HTTP poly-house обучение завершается кодом **1**. Ошибка holders/distribution
+При ошибке HTTP poly-house сборка dataset завершается кодом **1**. Ошибка holders/distribution
 для отдельного маркета — warning и skip; ошибка одного кошелька — warning и skip кошелька.
+
+```bash
+uv run holder-boost dataset
+uv run holder-boost dataset --max-pages 2  # ограничить пагинацию /markets (для тестов)
+```
+
+### `train`
+
+Один вызов без аргументов (требует готовый **`{dataset_dir}/{tag_id}/`**):
+
+1. Load `train.parquet` + проверка `metadata.json` (`tag_id`, `min_wallet_count`)
+2. Optuna + 5-fold CV (или **`--skip-tuning`** для быстрого прогона)
+3. Сохранение в **`{model_dir}/{tag_id}/`**: `catboost.cbm`, `wallets.pkl`, `metadata.json`, `feature_importance.csv`
 
 ```bash
 uv run holder-boost train
 uv run holder-boost train --skip-tuning
-uv run holder-boost train --max-pages 2  # ограничить пагинацию /markets (для тестов)
 ```
 
 ### `serve`

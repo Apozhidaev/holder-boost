@@ -1,45 +1,39 @@
-"""``train`` command: CatBoost model on holder distribution rows."""
+"""``train`` command: CatBoost model from saved training dataset."""
 
 from __future__ import annotations
-
-import asyncio
-
-import httpx
 
 from holder_boost.config import get_settings
 from holder_boost.logging import get_logger
 from holder_boost.ml.artifacts import model_dir_for_tag, save_artifacts
-from holder_boost.ml.trainer import train_model
-from holder_boost.poly_house.enrich import fetch_resolved_markets_with_holders
+from holder_boost.ml.dataset_store import dataset_dir_for_tag, load_training_frame
+from holder_boost.ml.trainer import train_model_from_frame
 
 
-async def run_train(
-    client: httpx.AsyncClient,
-    *,
-    skip_tuning: bool = False,
-    max_pages: int | None = None,
-) -> None:
-    """Fetch markets from poly-house, train CatBoost on holder rows, save artifacts."""
+def run_train(*, skip_tuning: bool = False) -> None:
+    """Load training parquet and train CatBoost; save model artifacts."""
     log = get_logger("cli.train")
     cfg = get_settings().train
     model_dir = model_dir_for_tag(cfg.model_dir, cfg.tag_id)
+    dataset_dir = dataset_dir_for_tag(cfg.dataset_dir, cfg.tag_id)
 
-    markets = await fetch_resolved_markets_with_holders(
-        client,
-        tag_id=cfg.tag_id,
-        neg_risk=cfg.neg_risk,
-        max_pages=max_pages,
+    X, y, frequent_wallets = load_training_frame(
+        dataset_dir,
+        expected_tag_id=cfg.tag_id,
+        expected_min_wallet_count=cfg.min_wallet_count,
     )
     log.info(
         "train data loaded",
         tag_id=cfg.tag_id,
-        markets=len(markets),
-        neg_risk=cfg.neg_risk,
+        dataset_dir=str(dataset_dir),
+        rows=len(X),
+        features=len(X.columns),
+        wallets=len(frequent_wallets),
     )
 
-    result = await asyncio.to_thread(
-        train_model,
-        markets,
+    result = train_model_from_frame(
+        X,
+        y,
+        frequent_wallets,
         cfg,
         skip_tuning=skip_tuning,
     )
@@ -71,5 +65,5 @@ async def run_train(
         best_cv_auc=result.metadata.best_cv_auc,
     )
 
-    print(f"train: tag_id={cfg.tag_id} markets={len(markets)} saved={model_dir}")
+    print(f"train: tag_id={cfg.tag_id} saved={model_dir}")
     print(f"  {summary}")

@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 import typer
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
+from holder_boost.cli.dataset_cmd import run_dataset
 from holder_boost.cli.serve_cmd import run_serve
 from holder_boost.cli.train_cmd import run_train
 from holder_boost.config import get_settings
@@ -46,12 +47,7 @@ async def _http_session(*, command_name: str) -> AsyncIterator[None]:
 
 
 @app.command()
-def train(
-    skip_tuning: bool = typer.Option(
-        False,
-        "--skip-tuning",
-        help="Skip Optuna hyperparameter search (faster smoke runs).",
-    ),
+def dataset(
     max_pages: int | None = typer.Option(
         None,
         "--max-pages",
@@ -59,23 +55,38 @@ def train(
         help="Stop poly-house /markets pagination after N pages (for testing).",
     ),
 ) -> None:
-    """Train CatBoost on holder distribution rows; save model to ``model_dir``."""
+    """Fetch poly-house data and save training parquet to ``dataset_dir``."""
+    clear_contextvars()
+    bind_contextvars(source="cli.dataset")
+    asyncio.run(_run_dataset(max_pages=max_pages))
+
+
+async def _run_dataset(*, max_pages: int | None = None) -> None:
+    async with _http_session(command_name="dataset"), make_client() as client:
+        await run_dataset(client, max_pages=max_pages)
+
+
+@app.command()
+def train(
+    skip_tuning: bool = typer.Option(
+        False,
+        "--skip-tuning",
+        help="Skip Optuna hyperparameter search (faster smoke runs).",
+    ),
+) -> None:
+    """Train CatBoost from saved dataset; save model to ``model_dir``."""
     clear_contextvars()
     bind_contextvars(source="cli.train")
-    asyncio.run(_run_train(skip_tuning=skip_tuning, max_pages=max_pages))
-
-
-async def _run_train(
-    *,
-    skip_tuning: bool = False,
-    max_pages: int | None = None,
-) -> None:
-    async with _http_session(command_name="train"), make_client() as client:
-        await run_train(
-            client,
-            skip_tuning=skip_tuning,
-            max_pages=max_pages,
-        )
+    try:
+        run_train(skip_tuning=skip_tuning)
+    except (FileNotFoundError, ValueError) as exc:
+        log = get_logger("cli.train")
+        log.error("train failed", error=str(exc))
+        raise typer.Exit(code=1) from exc
+    except Exception as exc:
+        log = get_logger("cli.train")
+        log.error("unexpected error", error=str(exc), exc_info=True)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command()
