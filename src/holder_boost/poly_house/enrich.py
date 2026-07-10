@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import httpx
 
 from holder_boost.http import HTTPError
@@ -18,6 +20,7 @@ async def fetch_resolved_markets_with_holders(
     *,
     tag_id: int,
     neg_risk: bool,
+    exclude_tag_ids: Sequence[int],
     max_pages: int | None = None,
 ) -> list[ResolvedMarket]:
     """Fetch closed markets for *tag_id* and enrich each with holder distribution."""
@@ -25,6 +28,7 @@ async def fetch_resolved_markets_with_holders(
         client,
         tag_ids=[tag_id],
         neg_risk=neg_risk,
+        exclude_tag_ids=exclude_tag_ids,
         max_pages=max_pages,
     )
 

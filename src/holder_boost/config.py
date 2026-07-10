@@ -45,6 +45,7 @@ class TrainSettings(BaseModel):
     model_dir: str = ".models"
     dataset_dir: str = ".datasets"
     neg_risk: bool = False
+    exclude_tag_ids: list[int] = Field(default_factory=list)
     min_wallet_count: int = 8
     n_trials: int = 70
     n_folds: int = 5

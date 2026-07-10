@@ -32,6 +32,7 @@ async def fetch_resolved_markets(
     *,
     tag_ids: Sequence[int] | None = None,
     neg_risk: bool = False,
+    exclude_tag_ids: Sequence[int] | None = None,
     max_pages: int | None = None,
 ) -> list[ResolvedMarket]:
     """Load closed markets from poly-house ``GET /markets``."""
@@ -43,17 +44,23 @@ async def fetch_resolved_markets(
     offset = 0
     page_no = 0
 
+    exclude_ids = list(exclude_tag_ids) if exclude_tag_ids else []
+
     while True:
+        params: dict[str, Any] = {
+            "resolved": True,
+            "temporal": True,
+            "neg_risk": neg_risk,
+            "limit": _PAGE_LIMIT,
+            "offset": offset,
+        }
+        if exclude_ids:
+            params["exclude_tag_ids"] = exclude_ids
+
         payload = await get_json_with_body(
             client,
             url,
-            params={
-                "resolved": True,
-                "temporal": True,
-                "neg_risk": neg_risk,
-                "limit": _PAGE_LIMIT,
-                "offset": offset,
-            },
+            params=params,
             json_body=body,
         )
         items = payload["items"]
@@ -70,6 +77,7 @@ async def fetch_resolved_markets(
             market_count=len(out),
             max_pages=max_pages,
             neg_risk=neg_risk,
+            exclude_tag_ids=exclude_ids,
         )
 
         if max_pages is not None and page_no >= max_pages:
