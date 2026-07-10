@@ -28,6 +28,7 @@ async def run_dataset(
         tag_id=cfg.tag_id,
         neg_risk=cfg.neg_risk,
         exclude_tag_ids=cfg.exclude_tag_ids,
+        min_duration_days=cfg.min_duration_days,
         max_pages=max_pages,
     )
     log.info(
@@ -36,6 +37,7 @@ async def run_dataset(
         markets=len(markets),
         neg_risk=cfg.neg_risk,
         exclude_tag_ids=cfg.exclude_tag_ids,
+        min_duration_days=cfg.min_duration_days,
     )
 
     X, y, frequent_wallets = await asyncio.to_thread(

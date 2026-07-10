@@ -15,6 +15,7 @@ from holder_boost.models.markets import ResolvedMarket
 log = get_logger("poly_house.markets")
 
 _PAGE_LIMIT = 500
+_MINUTES_PER_DAY = 1440
 
 
 def _resolved_market_from_house(raw: dict[str, Any]) -> ResolvedMarket:
@@ -23,7 +24,7 @@ def _resolved_market_from_house(raw: dict[str, Any]) -> ResolvedMarket:
         slug=raw["slug"],
         condition_id=raw["condition_id"],
         resolved_outcome_index=raw["resolved_outcome_index"],
-        duration_days=raw["duration_minutes"] // 1440
+        duration_days=raw["duration_minutes"] // _MINUTES_PER_DAY
     )
 
 
@@ -33,6 +34,7 @@ async def fetch_resolved_markets(
     tag_ids: Sequence[int] | None = None,
     neg_risk: bool = False,
     exclude_tag_ids: Sequence[int] | None = None,
+    min_duration_days: int = 0,
     max_pages: int | None = None,
 ) -> list[ResolvedMarket]:
     """Load closed markets from poly-house ``GET /markets``."""
@@ -45,6 +47,7 @@ async def fetch_resolved_markets(
     page_no = 0
 
     exclude_ids = list(exclude_tag_ids) if exclude_tag_ids else []
+    duration_from = min_duration_days * _MINUTES_PER_DAY
 
     while True:
         params: dict[str, Any] = {
@@ -56,6 +59,8 @@ async def fetch_resolved_markets(
         }
         if exclude_ids:
             params["exclude_tag_ids"] = exclude_ids
+        if min_duration_days > 0:
+            params["duration_from"] = duration_from
 
         payload = await get_json_with_body(
             client,
@@ -78,6 +83,7 @@ async def fetch_resolved_markets(
             max_pages=max_pages,
             neg_risk=neg_risk,
             exclude_tag_ids=exclude_ids,
+            min_duration_days=min_duration_days,
         )
 
         if max_pages is not None and page_no >= max_pages:

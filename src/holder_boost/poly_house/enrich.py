@@ -21,6 +21,7 @@ async def fetch_resolved_markets_with_holders(
     tag_id: int,
     neg_risk: bool,
     exclude_tag_ids: Sequence[int],
+    min_duration_days: int,
     max_pages: int | None = None,
 ) -> list[ResolvedMarket]:
     """Fetch closed markets for *tag_id* and enrich each with holder distribution."""
@@ -29,6 +30,7 @@ async def fetch_resolved_markets_with_holders(
         tag_ids=[tag_id],
         neg_risk=neg_risk,
         exclude_tag_ids=exclude_tag_ids,
+        min_duration_days=min_duration_days,
         max_pages=max_pages,
     )
 

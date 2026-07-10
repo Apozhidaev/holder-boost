@@ -54,6 +54,7 @@ uv sync
   - `dataset_dir` — базовый каталог dataset (по умолчанию `.datasets/`); parquet тега — **`{dataset_dir}/{tag_id}/`**
   - `neg_risk` — query **`neg_risk`** на **`GET /markets`**
   - `exclude_tag_ids` — опциональный query **`exclude_tag_ids`** на **`GET /markets`** (список tag id для исключения; по умолчанию пустой)
+  - `min_duration_days` — минимальная длительность маркета в днях; query **`duration_from`** на **`GET /markets`** (`min_duration_days * 1440` минут; `0` = без фильтра)
   - `min_wallet_count` — минимум вхождений `proxy_wallet` в маркетах для колонки с адресом кошелька
   - `n_trials`, `n_folds`, `random_state` — Optuna и CV
 - `[api]` — REST API (**`serve`**):
@@ -66,7 +67,7 @@ uv sync
 Один вызов без аргументов (тег из **`[train].tag_id`**):
 
 1. Загрузка closed-маркетов через poly-house **`GET /markets`** (offset-пагинация, `limit` до 500);
-   body = `[tag_id]` из **`[train]`**; query **`neg_risk`** и опционально **`exclude_tag_ids`** из **`[train]`**
+   body = `[tag_id]` из **`[train]`**; query **`neg_risk`**, опционально **`exclude_tag_ids`** и **`duration_from`** (из **`min_duration_days`**) из **`[train]`**
 2. Для каждого маркета — **`GET /activity/holders`**, затем **`GET /activity/holder-distribution`**
    на каждый `proxy_wallet`; `max_days_left` маркета = max `max_days_left` холдеров (где `>= 0`), иначе `-1` (неизвестно)
 3. Разворачивание строк `(market, day)` для `day = 0..max_days_left` (маркеты с `max_days_left < 0` пропускаются); фичи: **`days_left`** и адрес кошелька (`distribution[day]`, иначе `-1`); строки, где все wallet-колонки `-1`, пропускаются
