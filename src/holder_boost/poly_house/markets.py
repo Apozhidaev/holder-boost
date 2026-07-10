@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 
 from holder_boost.config import get_settings
-from holder_boost.http import get_json_with_body
+from holder_boost.http import get_json
 from holder_boost.logging import get_logger
 from holder_boost.models.markets import ResolvedMarket
 
@@ -40,12 +40,12 @@ async def fetch_resolved_markets(
     """Load closed markets from poly-house ``GET /markets``."""
     base = get_settings().poly_house.base_url.rstrip("/")
     url = f"{base}/markets"
-    body: list[int] | None = list(tag_ids) if tag_ids else None
 
     out: list[ResolvedMarket] = []
     offset = 0
     page_no = 0
 
+    include_ids: list[int] | None = list(tag_ids) if tag_ids else None
     exclude_ids = list(exclude_tag_ids) if exclude_tag_ids else []
     duration_from = min_duration_days * _MINUTES_PER_DAY
 
@@ -53,20 +53,22 @@ async def fetch_resolved_markets(
         params: dict[str, Any] = {
             "resolved": True,
             "temporal": True,
+
             "neg_risk": neg_risk,
             "limit": _PAGE_LIMIT,
             "offset": offset,
         }
+        if include_ids:
+            params["tag_ids"] = include_ids
         if exclude_ids:
             params["exclude_tag_ids"] = exclude_ids
         if min_duration_days > 0:
             params["duration_from"] = duration_from
 
-        payload = await get_json_with_body(
+        payload = await get_json(
             client,
             url,
             params=params,
-            json_body=body,
         )
         items = payload["items"]
         if not items:

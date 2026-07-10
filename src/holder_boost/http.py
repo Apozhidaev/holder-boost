@@ -108,18 +108,3 @@ async def get_json(
     """GET ``url`` and parse JSON, retrying transient failures up to 3x."""
     return await _request_json_with_retries(client, url, params=params)
 
-
-async def get_json_with_body(
-    client: httpx.AsyncClient,
-    url: str,
-    *,
-    params: dict[str, Any] | None = None,
-    json_body: Any = None,
-) -> Any:
-    """GET ``url`` with optional JSON body, parse response JSON with retries."""
-    return await _request_json_with_retries(
-        client,
-        url,
-        params=params,
-        json_body=json_body,
-    )
