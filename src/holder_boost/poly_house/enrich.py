@@ -22,6 +22,7 @@ async def fetch_resolved_markets_with_holders(
     neg_risk: bool,
     exclude_tag_ids: Sequence[int],
     min_duration_days: int,
+    holders_limit: int | None = None,
     max_pages: int | None = None,
 ) -> list[ResolvedMarket]:
     """Fetch closed markets for *tag_id* and enrich each with holder distribution."""
@@ -41,7 +42,8 @@ async def fetch_resolved_markets_with_holders(
             holders, max_days_left = await fetch_market_holder_distribution(
                 client,
                 condition_id=market.condition_id,
-                tag_id=tag_id
+                tag_id=tag_id,
+                holders_limit=holders_limit,
             )
         except HTTPError as exc:
             enrich_failed += 1

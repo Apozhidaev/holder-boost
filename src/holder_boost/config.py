@@ -47,6 +47,7 @@ class TrainSettings(BaseModel):
     neg_risk: bool = False
     exclude_tag_ids: list[int] = Field(default_factory=list)
     min_duration_days: int = 0
+    holders_limit: int | None = None
     min_wallet_count: int = 8
     n_trials: int = 70
     n_folds: int = 5

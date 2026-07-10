@@ -15,6 +15,7 @@ dataset_dir = ".datasets"
 neg_risk = false
 # exclude_tag_ids = [100, 200]
 # min_duration_days = 7
+# holders_limit = 1000
 min_wallet_count = 5
 n_trials = 70
 n_folds = 5

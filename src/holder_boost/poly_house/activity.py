@@ -39,16 +39,21 @@ async def fetch_market_proxy_wallets(
     *,
     condition_id: str,
     tag_id: int,
+    holders_limit: int | None = None,
 ) -> list[str]:
     """Load proxy wallet list for *condition_id* from poly-house ``GET /activity/holders``."""
     base = get_settings().poly_house.base_url.rstrip("/")
     url = f"{base}/activity/holders"
-    payload = await get_json(client, url, params={"condition_id": condition_id, "tag_id": tag_id})
+    params: dict[str, Any] = {"condition_id": condition_id, "tag_id": tag_id}
+    if holders_limit is not None:
+        params["limit"] = holders_limit
+    payload = await get_json(client, url, params=params)
     proxy_wallets = _proxy_wallets_from_payload(payload)
     log.info(
         "poly-house holders loaded",
         market=condition_id,
         proxy_wallets=len(proxy_wallets),
+        holders_limit=holders_limit,
     )
     return proxy_wallets
 
@@ -101,9 +106,15 @@ async def fetch_market_holder_distribution(
     *,
     condition_id: str,
     tag_id: int,
+    holders_limit: int | None = None,
 ) -> tuple[list[HolderDistribution], int]:
     """Load all holder distributions for *condition_id*."""
-    proxy_wallets = await fetch_market_proxy_wallets(client, condition_id=condition_id, tag_id=tag_id)
+    proxy_wallets = await fetch_market_proxy_wallets(
+        client,
+        condition_id=condition_id,
+        tag_id=tag_id,
+        holders_limit=holders_limit,
+    )
     results = await asyncio.gather(
         *[
             _fetch_holder_distribution_safe(
